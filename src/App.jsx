@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Droplets,
+  BrainCircuit,
+  Cloud,
   FolderOpen,
   Github,
   Linkedin,
+  Monitor,
   Send,
-  Sparkles
+  Server,
+  Terminal
 } from "lucide-react";
 
 const profile = {
@@ -24,30 +27,52 @@ const projects = [
   {
     title: "ascii-art-js",
     year: "2026",
+    description:
+      "A JavaScript project for generating and experimenting with ASCII art output in the browser.",
+    tags: ["JavaScript", "Frontend", "Creative Coding"],
+    icon: Terminal,
     repo: "https://github.com/astrilo-monk/ascii-art-js",
+    live: "https://ascii-art-liart.vercel.app",
     color: "cyan"
   },
   {
     title: "code-tracer",
     year: "2026",
+    description:
+      "A tool-focused project for tracing and understanding code flow, useful for debugging and learning.",
+    tags: ["Developer Tools", "Debugging", "JavaScript"],
+    icon: Monitor,
     repo: "https://github.com/astrilo-monk/code-tracer",
     color: "magenta"
   },
   {
     title: "saarthi",
     year: "2025",
+    description:
+      "An assistant-style application focused on helping users with guided interactions and practical workflows.",
+    tags: ["App Development", "UX", "JavaScript"],
+    icon: Cloud,
     repo: "https://github.com/astrilo-monk/saarthi",
+    live: "https://saarthi-astrilo-monk.vercel.app/",
     color: "yellow"
   },
   {
     title: "emotion-tracker",
     year: "2025",
+    description:
+      "A project for tracking and visualizing emotional trends and user input patterns over time.",
+    tags: ["Tracking", "Data", "Visualization"],
+    icon: BrainCircuit,
     repo: "https://github.com/astrilo-monk/emotion-tracker",
     color: "cyan"
   },
   {
     title: "repl",
     year: "2025",
+    description:
+      "An interactive REPL-style project for running and testing code snippets in a quick feedback loop.",
+    tags: ["REPL", "Tooling", "Learning"],
+    icon: Server,
     repo: "https://github.com/astrilo-monk/repl",
     color: "yellow"
   }
@@ -222,97 +247,9 @@ function SectionHeading({ index, title, accent = "cyan", showTrail = true, note 
 function App() {
   const now = useClock();
   const canvasRef = useRef(null);
-  const projectsSectionRef = useRef(null);
-  const tickerTrackRef = useRef(null);
 
   useParticles(canvasRef);
   useReveal();
-
-  useEffect(() => {
-    const section = projectsSectionRef.current;
-    const track = tickerTrackRef.current;
-    if (!section || !track) {
-      return;
-    }
-
-    let cleanup = () => {};
-
-    const loadScript = (src) =>
-      new Promise((resolve, reject) => {
-        const existing = document.querySelector(`script[data-gsap-src=\"${src}\"]`);
-        if (existing) {
-          if (existing.dataset.loaded === "true") {
-            resolve();
-            return;
-          }
-          existing.addEventListener("load", () => resolve(), { once: true });
-          existing.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), {
-            once: true
-          });
-          return;
-        }
-
-        const script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-        script.dataset.gsapSrc = src;
-        script.addEventListener(
-          "load",
-          () => {
-            script.dataset.loaded = "true";
-            resolve();
-          },
-          { once: true }
-        );
-        script.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), {
-          once: true
-        });
-        document.head.appendChild(script);
-      });
-
-    const initTicker = (gsapLib, scrollTriggerLib) => {
-      gsapLib.registerPlugin(scrollTriggerLib);
-      const ctx = gsapLib.context(() => {
-        const distance = Math.max(track.scrollWidth - window.innerWidth + 120, 600);
-        gsapLib.fromTo(
-          track,
-          { x: 0 },
-          {
-            x: -distance,
-            ease: "none",
-            scrollTrigger: {
-              trigger: section,
-              start: "top top",
-              end: `+=${distance * 1.2}`,
-              scrub: 1,
-              pin: true,
-              anticipatePin: 1,
-              invalidateOnRefresh: true
-            }
-          }
-        );
-      }, section);
-
-      cleanup = () => ctx.revert();
-    };
-
-    const setup = async () => {
-      const hasGlobalGsap = typeof window.gsap !== "undefined" && typeof window.ScrollTrigger !== "undefined";
-
-      if (!hasGlobalGsap) {
-        await loadScript("https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js");
-        await loadScript("https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js");
-      }
-
-      if (window.gsap && window.ScrollTrigger) {
-        initTicker(window.gsap, window.ScrollTrigger);
-      }
-    };
-
-    setup();
-
-    return () => cleanup();
-  }, []);
 
   const year = useMemo(() => new Date().getFullYear(), []);
 
@@ -441,52 +378,42 @@ function App() {
           </div>
         </section>
 
-        <section id="projects" className="section projects-ticker" ref={projectsSectionRef}>
+        <section id="projects" className="container section">
           <SectionHeading index="01" title="PROJECTS" accent="magenta" note="// SELECTED_WORK" />
 
-          <div className="projects-ticker-frame">
-            <div className="projects-ticker-track" ref={tickerTrackRef}>
-              <span className="ticker-word">In every bottle,</span>
-              <span className="ticker-icon cyan" aria-hidden="true">
-                <Droplets size={24} />
-              </span>
-
-              <span className="ticker-word gap-lg">discover the undeniable</span>
-              <span className="ticker-word magic">Real Magic</span>
-
-              <svg className="ticker-curve" viewBox="0 0 120 24" aria-hidden="true">
-                <path d="M2 12 C28 2, 44 22, 60 12 C76 2, 94 22, 118 12" />
-              </svg>
-
-              <span className="ticker-word">of sharing pure</span>
-              <span className="ticker-word refresh">Refreshment</span>
-
-              <span className="ticker-icon magenta" aria-hidden="true">
-                <Sparkles size={22} />
-              </span>
-
-              <span className="ticker-word">that brings us</span>
-              <span className="ticker-word together">Together</span>
-
-              <svg className="ticker-curve alt" viewBox="0 0 120 24" aria-hidden="true">
-                <path d="M2 12 C20 20, 40 4, 60 12 C80 20, 100 4, 118 12" />
-              </svg>
-
-              {projects.map((project) => (
-                <a
-                  key={project.title}
-                  className={`ticker-project-pill ${project.color}`}
-                  href={project.repo}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {project.title}
-                  <span>{project.year}</span>
-                </a>
-              ))}
-
-              <span className="ticker-word tail">and keeps the story moving.</span>
-            </div>
+          <div className="projects-grid">
+            {projects.map((project, idx) => {
+              const Icon = project.icon;
+              return (
+                <article key={project.title} className={`hud-panel corner-decor project-card fade-up d${idx + 1}`}>
+                  <div className="project-head">
+                    <div className={`hex-badge ${project.color}`}>
+                      <Icon size={20} />
+                    </div>
+                    <span>{project.year}</span>
+                  </div>
+                  <h3>{project.title}</h3>
+                  <p>{project.description}</p>
+                  <div className="tag-row">
+                    {project.tags.map((tag) => (
+                      <span key={tag} className={`tag ${project.color}`}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="project-links">
+                    <a className="project-link" href={project.repo} target="_blank" rel="noreferrer">
+                      OPEN REPO
+                    </a>
+                    {project.live && (
+                      <a className="project-link live" href={project.live} target="_blank" rel="noreferrer">
+                        OPEN LIVE
+                      </a>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
 
