@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BrainCircuit,
+  Code2,
   Cloud,
   FolderOpen,
   Github,
@@ -20,6 +21,7 @@ const profile = {
   stack: "React / Node / Python / AWS",
   github: "https://github.com/astrilo-monk",
   linkedin: "https://www.linkedin.com/in/astrilo/",
+  leetcode: "https://leetcode.com/u/CelestialRadiant/",
   email: "astrilo@dev.io"
 };
 
@@ -476,6 +478,15 @@ function App() {
                 <div>
                   <strong>LinkedIn</strong>
                   <p>linkedin.com/in/astrilo</p>
+                </div>
+              </a>
+              <a href={profile.leetcode} target="_blank" rel="noreferrer" className="social-link gold leetcode-card">
+                <span>
+                  <Code2 size={20} />
+                </span>
+                <div>
+                  <strong>LeetCode</strong>
+                  <p>leetcode.com/u/CelestialRadiant</p>
                 </div>
               </a>
             </article>
