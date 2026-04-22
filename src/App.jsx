@@ -5,6 +5,7 @@ import {
   Code2,
   Copy,
   Cloud,
+  FileText,
   FolderOpen,
   Github,
   Linkedin,
@@ -25,6 +26,7 @@ const profile = {
   github: "https://github.com/astrilo-monk",
   linkedin: "https://www.linkedin.com/in/astrilo/",
   leetcode: "https://leetcode.com/u/CelestialRadiant/",
+  resume: "/Farhan_Akhter_Resume.pdf",
   email: "mdowaisfarhanakhter561@gmail.com"
 };
 
@@ -356,6 +358,10 @@ function App() {
                   <Github size={16} />
                   GITHUB
                 </a>
+                <a href={profile.resume} target="_blank" rel="noreferrer" className="btn btn-outline" download>
+                  <FileText size={16} />
+                  RESUME
+                </a>
               </div>
             </div>
 
@@ -484,6 +490,10 @@ function App() {
                 <a className="quick-chip" href={`mailto:${profile.email}`}>
                   <Mail size={14} />
                   EMAIL DIRECT
+                </a>
+                <a className="quick-chip" href={profile.resume} target="_blank" rel="noreferrer" download>
+                  <FileText size={14} />
+                  DOWNLOAD RESUME
                 </a>
                 <button className="quick-chip ghost" type="button" onClick={handleCopyEmail}>
                   {copiedEmail ? <Check size={14} /> : <Copy size={14} />}
