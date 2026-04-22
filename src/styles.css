@@ -696,95 +696,6 @@ body {
   background: rgba(255, 230, 0, 0.05);
 }
 
-.skills-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.skills-head {
-  margin-bottom: 1.2rem;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  letter-spacing: 0.08em;
-}
-
-.skills-head .cyan {
-  color: var(--cyan-dim);
-}
-
-.skills-head .magenta {
-  color: var(--magenta-dim);
-}
-
-.bar-list {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.bar-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.3rem;
-}
-
-.bar-meta span {
-  font-family: var(--font-display);
-  color: var(--light);
-  letter-spacing: 0.03em;
-}
-
-.bar-meta strong {
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-}
-
-.bar-meta strong.cyan {
-  color: var(--cyan);
-}
-
-.bar-meta strong.magenta {
-  color: var(--magenta);
-}
-
-.bar-track {
-  height: 0.4rem;
-  border-radius: 999px;
-  overflow: hidden;
-  background: var(--border);
-}
-
-.bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  position: relative;
-  animation: loadBar 1.5s ease-out forwards;
-}
-
-.bar-fill::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  box-shadow: 0 0 8px currentColor;
-}
-
-.bar-fill.cyan {
-  background: linear-gradient(90deg, var(--cyan), #7af8ff);
-  color: var(--cyan);
-}
-
-.bar-fill.magenta {
-  background: linear-gradient(90deg, var(--magenta), #ff66cc);
-  color: var(--magenta);
-}
-
 .timeline {
   position: relative;
   display: grid;
@@ -1074,12 +985,6 @@ body {
   }
 }
 
-@keyframes loadBar {
-  from {
-    width: 0;
-  }
-}
-
 @keyframes blink {
   50% {
     opacity: 0;
@@ -1134,7 +1039,6 @@ body {
 
   .hero-grid,
   .projects-grid,
-  .skills-grid,
   .contact-grid {
     grid-template-columns: 1fr;
   }

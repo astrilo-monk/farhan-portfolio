@@ -76,29 +76,6 @@ const projects = [
   }
 ];
 
-const skillGroups = [
-  {
-    title: "FRONTEND_SYSTEMS",
-    icon: Monitor,
-    color: "cyan",
-    items: [
-      { name: "JavaScript / TypeScript", percent: 92 },
-      { name: "React / Next.js", percent: 88 },
-      { name: "CSS / Tailwind / Animations", percent: 85 }
-    ]
-  },
-  {
-    title: "BACKEND_SYSTEMS",
-    icon: Server,
-    color: "magenta",
-    items: [
-      { name: "Node.js / Express", percent: 90 },
-      { name: "Python / FastAPI", percent: 85 },
-      { name: "PostgreSQL / MongoDB", percent: 82 }
-    ]
-  }
-];
-
 const experience = [
   {
     role: "BTech Student (CSE)",
@@ -121,7 +98,6 @@ const experience = [
 const navItems = [
   ["ABOUT", "about"],
   ["PROJECTS", "projects"],
-  ["SKILLS", "skills"],
   ["JOURNEY", "experience"]
 ];
 
@@ -432,40 +408,8 @@ function App() {
           </div>
         </section>
 
-        <section id="skills" className="container section">
-          <SectionHeading index="02" title="TECH STACK" accent="cyan" showTrail />
-
-          <div className="skills-grid">
-            {skillGroups.map((group, idx) => {
-              const Icon = group.icon;
-              return (
-                <article key={group.title} className={`hud-panel corner-decor fade-up d${idx + 1}`}>
-                  <div className="skills-head">
-                    <Icon size={14} />
-                    <span className={group.color}>{group.title}</span>
-                  </div>
-
-                  <div className="bar-list">
-                    {group.items.map((item) => (
-                      <div key={item.name}>
-                        <div className="bar-meta">
-                          <span>{item.name}</span>
-                          <strong className={group.color}>{item.percent}%</strong>
-                        </div>
-                        <div className="bar-track">
-                          <div className={`bar-fill ${group.color}`} style={{ width: `${item.percent}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
         <section id="experience" className="container section">
-          <SectionHeading index="03" title="JOURNEY" accent="yellow" showTrail={false} />
+          <SectionHeading index="02" title="JOURNEY" accent="yellow" showTrail={false} />
 
           <div className="timeline">
             {experience.map((item, idx) => (
@@ -487,7 +431,7 @@ function App() {
         </section>
 
         <section id="contact" className="container section">
-          <SectionHeading index="04" title="CONNECT" accent="cyan" showTrail={false} />
+          <SectionHeading index="03" title="CONNECT" accent="cyan" showTrail={false} />
 
           <div className="contact-grid">
             <article className="hud-panel corner-decor fade-up d1">
