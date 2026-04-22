@@ -1,5 +1,42 @@
 import { useEffect, useRef, useState } from "react";
-import p5 from "p5";
+
+const P5_CDN_URL = "https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js";
+
+function loadP5FromCdn() {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("Window is not available"));
+  }
+
+  if (window.p5) {
+    return Promise.resolve(window.p5);
+  }
+
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector("script[data-p5-cdn='true']");
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window.p5), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Failed to load p5")), {
+        once: true
+      });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = P5_CDN_URL;
+    script.async = true;
+    script.defer = true;
+    script.dataset.p5Cdn = "true";
+    script.onload = () => {
+      if (window.p5) {
+        resolve(window.p5);
+      } else {
+        reject(new Error("p5 loaded but not found on window"));
+      }
+    };
+    script.onerror = () => reject(new Error("Failed to load p5"));
+    document.head.appendChild(script);
+  });
+}
 
 export function ForceFieldBackground({
   imageUrl = "https://cdn.pixabay.com/photo/2024/12/13/20/29/alps-9266131_1280.jpg",
@@ -84,11 +121,33 @@ export function ForceFieldBackground({
       return;
     }
 
+    let disposed = false;
+    let instance = null;
+
     if (p5InstanceRef.current) {
       p5InstanceRef.current.remove();
     }
 
-    const sketch = (p) => {
+    setError(null);
+    setIsLoading(true);
+
+    const start = async () => {
+      let P5;
+      try {
+        P5 = await loadP5FromCdn();
+      } catch {
+        if (!disposed) {
+          setError("Failed to load p5 runtime");
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      if (disposed || !containerRef.current) {
+        return;
+      }
+
+      const sketch = (p) => {
       let originalImg;
       let img;
       let palette = [];
@@ -220,7 +279,7 @@ export function ForceFieldBackground({
         }
 
         for (const pt of points) {
-          const dir = p5.Vector.sub(pt.pos, p.createVector(mx, my));
+          const dir = P5.Vector.sub(pt.pos, p.createVector(mx, my));
           const d = dir.mag();
 
           if (d < current.magnifierRadius) {
@@ -230,7 +289,7 @@ export function ForceFieldBackground({
           }
 
           pt.vel.mult(current.friction);
-          const restore = p5.Vector.sub(pt.pos, pt.originalPos).mult(-current.restoreSpeed);
+          const restore = P5.Vector.sub(pt.pos, pt.originalPos).mult(-current.restoreSpeed);
           pt.vel.add(restore);
           pt.pos.add(pt.vel);
         }
@@ -308,13 +367,19 @@ export function ForceFieldBackground({
           }
         }
       };
+      };
+
+      instance = new P5(sketch, containerRef.current);
+      p5InstanceRef.current = instance;
     };
 
-    const instance = new p5(sketch, containerRef.current);
-    p5InstanceRef.current = instance;
+    start();
 
     return () => {
-      instance.remove();
+      disposed = true;
+      if (instance) {
+        instance.remove();
+      }
     };
   }, [imageUrl]);
 
