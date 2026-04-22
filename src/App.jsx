@@ -16,13 +16,13 @@ const profile = {
   name: "ASTRILO",
   role: "College Student Developer",
   experience: "No Professional Experience Yet",
-  location: "BP Poddar Institute of Management and Technology",
+  location: "Anywhere in India (passport applied)",
   status: "Open to Internships",
-  stack: "React / Node / Python / AWS",
+  stack: "React / Node / Python / Java",
   github: "https://github.com/astrilo-monk",
   linkedin: "https://www.linkedin.com/in/astrilo/",
   leetcode: "https://leetcode.com/u/CelestialRadiant/",
-  email: "astrilo@dev.io"
+  email: "mdowaisfarhanakhter561@gmail.com"
 };
 
 const projects = [
@@ -254,6 +254,7 @@ function App() {
   useReveal();
 
   const year = useMemo(() => new Date().getFullYear(), []);
+  const contactAction = useMemo(() => `https://formsubmit.co/${profile.email}`, []);
 
   return (
     <div className="app grid-bg">
@@ -454,10 +455,38 @@ function App() {
                 I am looking for internships, mentorship, and junior-level opportunities where I can
                 learn, contribute, and grow as a developer.
               </p>
-              <a className="btn btn-primary" href={`mailto:${profile.email}`}>
-                <Send size={18} />
-                SEND_MESSAGE
-              </a>
+
+              <form className="contact-form" action={contactAction} method="POST">
+                <input type="hidden" name="_subject" value="New Portfolio Message" />
+                <input type="hidden" name="_captcha" value="false" />
+                <input type="hidden" name="_template" value="table" />
+
+                <input
+                  className="contact-input"
+                  type="text"
+                  name="name"
+                  placeholder="Your name"
+                  required
+                />
+                <input
+                  className="contact-input"
+                  type="email"
+                  name="email"
+                  placeholder="Your email"
+                  required
+                />
+                <textarea
+                  className="contact-input contact-textarea"
+                  name="message"
+                  placeholder="Tell me about your project or opportunity"
+                  rows={4}
+                  required
+                />
+                <button className="btn btn-primary" type="submit">
+                  <Send size={18} />
+                  SEND_MESSAGE
+                </button>
+              </form>
             </article>
 
             <article className="hud-panel social-panel fade-up d2">

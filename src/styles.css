@@ -829,6 +829,44 @@ body {
   line-height: 1.38;
 }
 
+.contact-form {
+  display: grid;
+  gap: 0.65rem;
+  max-width: 34rem;
+}
+
+.contact-input {
+  width: 100%;
+  background: rgba(10, 6, 16, 0.75);
+  border: 1px solid var(--border);
+  color: var(--light);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 0.72rem 0.85rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.contact-input::placeholder {
+  color: var(--mid);
+}
+
+.contact-input:focus {
+  border-color: rgba(0, 240, 255, 0.55);
+  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.12);
+}
+
+.contact-textarea {
+  resize: vertical;
+  min-height: 6.4rem;
+}
+
+.contact-form .btn {
+  justify-content: center;
+  width: fit-content;
+  margin-top: 0.2rem;
+}
+
 .social-panel {
   display: grid;
   align-content: center;
