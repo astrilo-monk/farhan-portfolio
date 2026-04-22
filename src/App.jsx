@@ -15,7 +15,7 @@ const profile = {
   name: "ASTRILO",
   role: "College Student Developer",
   experience: "No Professional Experience Yet",
-  location: "Earth // Remote",
+  location: "BP Poddar Institute of Management and Technology",
   status: "Open to Internships",
   stack: "React / Node / Python / AWS",
   github: "https://github.com/astrilo-monk",
@@ -25,30 +25,53 @@ const profile = {
 
 const projects = [
   {
-    title: "CloudSync Platform",
-    year: "2024",
+    title: "ascii-art-js",
+    year: "2026",
     description:
-      "Real-time collaborative workspace with WebSocket integration, multi-tenant architecture, and automated CI/CD deployment pipelines.",
-    tags: ["React", "Node.js", "PostgreSQL", "Docker"],
-    icon: Cloud,
+      "A JavaScript project for generating and experimenting with ASCII art output in the browser.",
+    tags: ["JavaScript", "Frontend", "Creative Coding"],
+    icon: Terminal,
+    repo: "https://github.com/astrilo-monk/ascii-art-js",
     color: "cyan"
   },
   {
-    title: "DataPipe CLI",
-    year: "2024",
+    title: "code-tracer",
+    year: "2026",
     description:
-      "High-performance ETL command-line tool for transforming and routing data streams between databases, APIs, and file systems.",
-    tags: ["Python", "Redis", "Kafka"],
-    icon: Terminal,
+      "A tool-focused project for tracing and understanding code flow, useful for debugging and learning.",
+    tags: ["Developer Tools", "Debugging", "JavaScript"],
+    icon: Monitor,
+    repo: "https://github.com/astrilo-monk/code-tracer",
     color: "magenta"
   },
   {
-    title: "NeuralDash",
-    year: "2023",
+    title: "saarthi",
+    year: "2025",
     description:
-      "ML model monitoring dashboard with real-time metrics, drift detection, and automated alerting for production machine learning systems.",
-    tags: ["TypeScript", "Next.js", "TensorFlow"],
+      "An assistant-style application focused on helping users with guided interactions and practical workflows.",
+    tags: ["App Development", "UX", "JavaScript"],
+    icon: Cloud,
+    repo: "https://github.com/astrilo-monk/saarthi",
+    color: "yellow"
+  },
+  {
+    title: "emotion-tracker",
+    year: "2025",
+    description:
+      "A project for tracking and visualizing emotional trends and user input patterns over time.",
+    tags: ["Tracking", "Data", "Visualization"],
     icon: BrainCircuit,
+    repo: "https://github.com/astrilo-monk/emotion-tracker",
+    color: "cyan"
+  },
+  {
+    title: "repl",
+    year: "2025",
+    description:
+      "An interactive REPL-style project for running and testing code snippets in a quick feedback loop.",
+    tags: ["REPL", "Tooling", "Learning"],
+    icon: Server,
+    repo: "https://github.com/astrilo-monk/repl",
     color: "yellow"
   }
 ];
@@ -78,11 +101,11 @@ const skillGroups = [
 
 const experience = [
   {
-    role: "BSc/BS Computer Science Student",
-    company: "University",
+    role: "BTech Student (CSE)",
+    company: "BP Poddar Institute of Management and Technology",
     period: "Current",
     summary:
-      "Building a strong foundation in software engineering, data structures, algorithms, and web development through coursework and self-learning.",
+      "Studying BTech in Computer Science and Engineering with focus on software engineering, data structures, algorithms, and web development.",
     color: "cyan"
   },
   {
@@ -400,6 +423,9 @@ function App() {
                       </span>
                     ))}
                   </div>
+                  <a className="project-link" href={project.repo} target="_blank" rel="noreferrer">
+                    OPEN REPO
+                  </a>
                 </article>
               );
             })}
