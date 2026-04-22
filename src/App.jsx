@@ -80,6 +80,16 @@ const projects = [
     icon: Server,
     repo: "https://github.com/astrilo-monk/repl",
     color: "yellow"
+  },
+  {
+    title: "http-server-java",
+    year: "2026",
+    description:
+      "A Java-based HTTP server project focused on backend fundamentals, request handling, and server-side architecture.",
+    tags: ["Java", "HTTP", "Backend"],
+    icon: Server,
+    repo: "https://github.com/astrilo-monk/http-server-java",
+    color: "magenta"
   }
 ];
 
