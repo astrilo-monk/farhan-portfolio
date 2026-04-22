@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BrainCircuit,
+  Check,
   Code2,
+  Copy,
   Cloud,
   FolderOpen,
   Github,
   Linkedin,
+  Mail,
   Monitor,
   Send,
   Server,
@@ -249,12 +252,23 @@ function SectionHeading({ index, title, accent = "cyan", showTrail = true, note 
 function App() {
   const now = useClock();
   const canvasRef = useRef(null);
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   useParticles(canvasRef);
   useReveal();
 
   const year = useMemo(() => new Date().getFullYear(), []);
   const contactAction = useMemo(() => `https://formsubmit.co/${profile.email}`, []);
+
+  const handleCopyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(profile.email);
+      setCopiedEmail(true);
+      window.setTimeout(() => setCopiedEmail(false), 1800);
+    } catch {
+      setCopiedEmail(false);
+    }
+  };
 
   return (
     <div className="app grid-bg">
@@ -456,25 +470,38 @@ function App() {
                 learn, contribute, and grow as a developer.
               </p>
 
+              <div className="contact-quick-actions">
+                <a className="quick-chip" href={`mailto:${profile.email}`}>
+                  <Mail size={14} />
+                  EMAIL DIRECT
+                </a>
+                <button className="quick-chip ghost" type="button" onClick={handleCopyEmail}>
+                  {copiedEmail ? <Check size={14} /> : <Copy size={14} />}
+                  {copiedEmail ? "EMAIL COPIED" : "COPY EMAIL"}
+                </button>
+              </div>
+
               <form className="contact-form" action={contactAction} method="POST">
                 <input type="hidden" name="_subject" value="New Portfolio Message" />
                 <input type="hidden" name="_captcha" value="false" />
                 <input type="hidden" name="_template" value="table" />
 
-                <input
-                  className="contact-input"
-                  type="text"
-                  name="name"
-                  placeholder="Your name"
-                  required
-                />
-                <input
-                  className="contact-input"
-                  type="email"
-                  name="email"
-                  placeholder="Your email"
-                  required
-                />
+                <div className="contact-row">
+                  <input
+                    className="contact-input"
+                    type="text"
+                    name="name"
+                    placeholder="Your name"
+                    required
+                  />
+                  <input
+                    className="contact-input"
+                    type="email"
+                    name="email"
+                    placeholder="Your email"
+                    required
+                  />
+                </div>
                 <textarea
                   className="contact-input contact-textarea"
                   name="message"
@@ -482,11 +509,16 @@ function App() {
                   rows={4}
                   required
                 />
-                <button className="btn btn-primary" type="submit">
-                  <Send size={18} />
-                  SEND_MESSAGE
-                </button>
+
+                <div className="contact-actions-row">
+                  <button className="btn btn-primary send-btn" type="submit">
+                    <Send size={18} />
+                    SEND MESSAGE
+                  </button>
+                  <p className="contact-note">Replies usually within 24 hours.</p>
+                </div>
               </form>
+
             </article>
 
             <article className="hud-panel social-panel fade-up d2">
