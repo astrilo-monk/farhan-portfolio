@@ -13,10 +13,10 @@ import {
 
 const profile = {
   name: "ASTRILO",
-  role: "Full-Stack Developer",
-  experience: "6+ Years",
+  role: "College Student Developer",
+  experience: "No Professional Experience Yet",
   location: "Earth // Remote",
-  status: "Open to Opportunities",
+  status: "Open to Internships",
   stack: "React / Node / Python / AWS",
   github: "https://github.com/astrilo-monk",
   linkedin: "https://www.linkedin.com/in/astrilo/",
@@ -78,19 +78,19 @@ const skillGroups = [
 
 const experience = [
   {
-    role: "Senior Full-Stack Developer",
-    company: "TechCorp Inc.",
-    period: "2022 -> PRESENT",
+    role: "BSc/BS Computer Science Student",
+    company: "University",
+    period: "Current",
     summary:
-      "Led architecture of microservices platform serving 2M+ users. Reduced API latency by 40% through caching strategies and query optimization.",
+      "Building a strong foundation in software engineering, data structures, algorithms, and web development through coursework and self-learning.",
     color: "cyan"
   },
   {
-    role: "Full-Stack Developer",
-    company: "DataFlow Systems",
-    period: "2020 -> 2022",
+    role: "Project-Based Learning",
+    company: "Personal & Academic Projects",
+    period: "Ongoing",
     summary:
-      "Built real-time data visualization dashboards with React and D3.js. Designed RESTful APIs and implemented automated testing pipelines with high code coverage.",
+      "Developing portfolio projects to practice frontend and backend skills, improve code quality, and learn real-world development workflows.",
     color: "magenta"
   }
 ];
@@ -99,7 +99,7 @@ const navItems = [
   ["ABOUT", "about"],
   ["PROJECTS", "projects"],
   ["SKILLS", "skills"],
-  ["EXPERIENCE", "experience"]
+  ["JOURNEY", "experience"]
 ];
 
 function useClock() {
@@ -313,9 +313,9 @@ function App() {
                   <span>{profile.role.toUpperCase()}</span>
                 </div>
                 <p className="hero-copy">
-                  Architecting scalable systems and crafting high-performance web applications.
-                  From pixel-perfect interfaces to distributed backends, I build across the
-                  entire stack with precision and purpose.
+                  I am a college student focused on becoming a strong full-stack developer.
+                  I build projects to practice modern web technologies, improve problem-solving,
+                  and grow through consistent hands-on learning.
                 </p>
               </div>
 
@@ -439,7 +439,7 @@ function App() {
         </section>
 
         <section id="experience" className="container section">
-          <SectionHeading index="03" title="EXPERIENCE" accent="yellow" showTrail={false} />
+          <SectionHeading index="03" title="JOURNEY" accent="yellow" showTrail={false} />
 
           <div className="timeline">
             {experience.map((item, idx) => (
@@ -470,8 +470,8 @@ function App() {
                 Let&apos;s talk.
               </p>
               <p className="contact-copy">
-                I am always open to discussing new projects, creative ideas, or opportunities to be
-                part of something ambitious.
+                I am looking for internships, mentorship, and junior-level opportunities where I can
+                learn, contribute, and grow as a developer.
               </p>
               <a className="btn btn-primary" href={`mailto:${profile.email}`}>
                 <Send size={18} />
