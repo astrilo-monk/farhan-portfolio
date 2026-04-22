@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BrainCircuit,
   Check,
@@ -15,6 +15,7 @@ import {
   Server,
   Terminal
 } from "lucide-react";
+import ForceFieldBackground from "./components/ForceFieldBackground";
 
 const profile = {
   name: "ASTRILO",
@@ -136,97 +137,6 @@ function useClock() {
   return time;
 }
 
-function useParticles(canvasRef) {
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
-    let animationFrame = 0;
-
-    class Particle {
-      constructor(width, height) {
-        this.width = width;
-        this.height = height;
-        this.reset();
-      }
-
-      updateBounds(width, height) {
-        this.width = width;
-        this.height = height;
-      }
-
-      reset() {
-        this.x = Math.random() * this.width;
-        this.y = Math.random() * this.height;
-        this.size = Math.random() * 1.5 + 0.3;
-        this.speedX = (Math.random() - 0.5) * 0.3;
-        this.speedY = (Math.random() - 0.5) * 0.3;
-        this.opacity = Math.random() * 0.4 + 0.1;
-        this.color = Math.random() > 0.5 ? "0,240,255" : "255,0,170";
-      }
-
-      update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-        if (
-          this.x < 0 ||
-          this.x > this.width ||
-          this.y < 0 ||
-          this.y > this.height
-        ) {
-          this.reset();
-        }
-      }
-
-      draw(context) {
-        context.beginPath();
-        context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        context.fillStyle = `rgba(${this.color}, ${this.opacity})`;
-        context.fill();
-      }
-    }
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      particleSet.forEach((particle) => {
-        particle.updateBounds(canvas.width, canvas.height);
-      });
-    };
-
-    const particleCount = window.innerWidth < 768 ? 40 : 80;
-    const particleSet = Array.from(
-      { length: particleCount },
-      () => new Particle(window.innerWidth, window.innerHeight)
-    );
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particleSet.forEach((particle) => {
-        particle.update();
-        particle.draw(ctx);
-      });
-      animationFrame = window.requestAnimationFrame(animate);
-    };
-
-    resize();
-    window.addEventListener("resize", resize);
-    animate();
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      window.cancelAnimationFrame(animationFrame);
-    };
-  }, [canvasRef]);
-}
-
 function useReveal() {
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -263,10 +173,8 @@ function SectionHeading({ index, title, accent = "cyan", showTrail = true, note 
 
 function App() {
   const now = useClock();
-  const canvasRef = useRef(null);
   const [copiedEmail, setCopiedEmail] = useState(false);
 
-  useParticles(canvasRef);
   useReveal();
 
   const year = useMemo(() => new Date().getFullYear(), []);
@@ -284,8 +192,21 @@ function App() {
 
   return (
     <div className="app grid-bg">
+      <div className="force-field-layer" aria-hidden="true">
+        <ForceFieldBackground
+          hue={210}
+          saturation={100}
+          spacing={12}
+          density={0.9}
+          minStroke={1.4}
+          maxStroke={3.4}
+          forceStrength={14}
+          magnifierRadius={160}
+          friction={0.9}
+          restoreSpeed={0.05}
+        />
+      </div>
       <div className="scanlines" aria-hidden="true" />
-      <canvas ref={canvasRef} id="particles" aria-hidden="true" />
 
       <div className="bg-blob top-left" aria-hidden="true" />
       <div className="bg-blob bottom-right" aria-hidden="true" />
