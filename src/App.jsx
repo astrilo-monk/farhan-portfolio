@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   Droplets,
   FolderOpen,
@@ -9,8 +7,6 @@ import {
   Send,
   Sparkles
 } from "lucide-react";
-
-gsap.registerPlugin(ScrollTrigger);
 
 const profile = {
   name: "ASTRILO",
@@ -239,29 +235,83 @@ function App() {
       return;
     }
 
-    const ctx = gsap.context(() => {
-      const distance = Math.max(track.scrollWidth - window.innerWidth + 120, 600);
+    let cleanup = () => {};
 
-      gsap.fromTo(
-        track,
-        { x: 0 },
-        {
-          x: -distance,
-          ease: "none",
-          scrollTrigger: {
-            trigger: section,
-            start: "top top",
-            end: `+=${distance * 1.2}`,
-            scrub: 1,
-            pin: true,
-            anticipatePin: 1,
-            invalidateOnRefresh: true
+    const loadScript = (src) =>
+      new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[data-gsap-src=\"${src}\"]`);
+        if (existing) {
+          if (existing.dataset.loaded === "true") {
+            resolve();
+            return;
           }
+          existing.addEventListener("load", () => resolve(), { once: true });
+          existing.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), {
+            once: true
+          });
+          return;
         }
-      );
-    }, section);
 
-    return () => ctx.revert();
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.dataset.gsapSrc = src;
+        script.addEventListener(
+          "load",
+          () => {
+            script.dataset.loaded = "true";
+            resolve();
+          },
+          { once: true }
+        );
+        script.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), {
+          once: true
+        });
+        document.head.appendChild(script);
+      });
+
+    const initTicker = (gsapLib, scrollTriggerLib) => {
+      gsapLib.registerPlugin(scrollTriggerLib);
+      const ctx = gsapLib.context(() => {
+        const distance = Math.max(track.scrollWidth - window.innerWidth + 120, 600);
+        gsapLib.fromTo(
+          track,
+          { x: 0 },
+          {
+            x: -distance,
+            ease: "none",
+            scrollTrigger: {
+              trigger: section,
+              start: "top top",
+              end: `+=${distance * 1.2}`,
+              scrub: 1,
+              pin: true,
+              anticipatePin: 1,
+              invalidateOnRefresh: true
+            }
+          }
+        );
+      }, section);
+
+      cleanup = () => ctx.revert();
+    };
+
+    const setup = async () => {
+      const hasGlobalGsap = typeof window.gsap !== "undefined" && typeof window.ScrollTrigger !== "undefined";
+
+      if (!hasGlobalGsap) {
+        await loadScript("https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js");
+        await loadScript("https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js");
+      }
+
+      if (window.gsap && window.ScrollTrigger) {
+        initTicker(window.gsap, window.ScrollTrigger);
+      }
+    };
+
+    setup();
+
+    return () => cleanup();
   }, []);
 
   const year = useMemo(() => new Date().getFullYear(), []);
