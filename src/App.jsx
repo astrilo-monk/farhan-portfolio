@@ -19,6 +19,7 @@ import ForceFieldBackground from "./components/ForceFieldBackground";
 
 const profile = {
   name: "ASTRILO",
+  realName: "MD OWAIS FARHAN AKHTER",
   role: "College Student Developer",
   experience: "No Professional Experience Yet",
   location: "Anywhere in India (passport applied)",
@@ -255,6 +256,9 @@ function App() {
                 <span>I&apos;M</span>
                 <span className="glitch-text" data-text={profile.name}>
                   {profile.name}
+                </span>
+                <span className="glitch-text" data-text={profile.realName} style={{ fontSize: 'clamp(1.5rem, 4vw, 3rem)', marginTop: '0.2rem' }}>
+                  {profile.realName}
                 </span>
               </h1>
 
