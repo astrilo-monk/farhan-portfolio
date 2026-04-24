@@ -52,6 +52,7 @@ const projects = [
     tags: ["Developer Tools", "Debugging", "JavaScript"],
     icon: Monitor,
     repo: "https://github.com/astrilo-monk/code-tracer",
+    live: "https://code-tracer-liart.vercel.app/",
     color: "magenta"
   },
   {
