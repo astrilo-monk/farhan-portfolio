@@ -100,6 +100,14 @@ const projects = [
 
 const experience = [
   {
+    role: "Junior Member, Technical Team",
+    company: "Google Developer Groups (GDG) BPPIMT",
+    period: "September 2025 - Present",
+    summary:
+      "Joined the technical team and helped build features for the main GDG website (https://gdgbppimt.vercel.app/). Currently contributing as a junior member.",
+    color: "cyan"
+  },
+  {
     role: "BTech Student (CSE)",
     company: "BP Poddar Institute of Management and Technology",
     period: "Current",
