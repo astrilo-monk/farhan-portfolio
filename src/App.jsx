@@ -16,6 +16,7 @@ import {
   Terminal
 } from "lucide-react";
 import ForceFieldBackground from "./components/ForceFieldBackground";
+import SkillsRadar from "./components/SkillsRadar";
 
 const profile = {
   name: "ASTRILO",
@@ -129,6 +130,7 @@ const experience = [
 const navItems = [
   ["ABOUT", "about"],
   ["PROJECTS", "projects"],
+  ["SKILLS", "skills"],
   ["JOURNEY", "experience"]
 ];
 
@@ -382,6 +384,16 @@ function App() {
                 </article>
               );
             })}
+          </div>
+        </section>
+
+        <section id="skills" className="container section">
+          <SectionHeading index="01.5" title="SKILLS" accent="cyan" note="// DATA_VISUALIZATION" showTrail={true} />
+          
+          <div className="skills-grid" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+            <div style={{ maxWidth: '600px', width: '100%' }}>
+              <SkillsRadar />
+            </div>
           </div>
         </section>
 
