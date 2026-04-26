@@ -517,6 +517,12 @@ function App() {
                   <p>leetcode.com/u/CelestialRadiant</p>
                 </div>
               </a>
+              
+              <div style={{ marginTop: '2.5rem', textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                <strong style={{ color: '#ffffff', fontSize: '1.1rem', letterSpacing: '0.05em', textShadow: '0 0 10px rgba(255,255,255,0.5)' }}>
+                  (HIRE ME TO UNLOCK MY TRUE POTENTIAL)
+                </strong>
+              </div>
             </article>
           </div>
         </section>
