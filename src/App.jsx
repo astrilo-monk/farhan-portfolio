@@ -99,18 +99,11 @@ const projects = [
 ];
 
 const experience = [
-  {
-    role: "Junior Member, Technical Team",
-    company: "Google Developer Groups (GDG) BPPIMT",
-    period: "September 2025 - Present",
-    summary:
-      "Joined the technical team and helped build features for the main GDG website (https://gdgbppimt.vercel.app/). Currently contributing as a junior member.",
-    color: "cyan"
-  },
+
   {
     role: "BTech Student (CSE)",
     company: "BP Poddar Institute of Management and Technology",
-    period: "Current",
+    period: "2024-2028",
     summary:
       "Studying BTech in Computer Science and Engineering with focus on software engineering, data structures, algorithms, and web development.",
     color: "cyan"
@@ -122,6 +115,14 @@ const experience = [
     summary:
       "Developing portfolio projects to practice frontend and backend skills, improve code quality, and learn real-world development workflows.",
     color: "magenta"
+  },
+  {
+    role: "Junior Member, Technical Team",
+    company: "Google Developer Groups (GDG) BPPIMT",
+    period: "September 2025 - Present",
+    summary:
+      "Joined the technical team and helped build features for the main GDG website (https://gdgbppimt.vercel.app/). Currently contributing as a junior member.",
+    color: "cyan"
   }
 ];
 
