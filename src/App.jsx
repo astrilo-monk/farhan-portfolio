@@ -295,7 +295,7 @@ function App() {
                   <Github size={16} />
                   GITHUB
                 </a>
-                <a href={profile.resume} target="_blank" rel="noreferrer" className="btn btn-outline" download>
+                <a href={profile.resume} target="_blank" rel="noreferrer" className="btn btn-outline">
                   <FileText size={16} />
                   RESUME
                 </a>
@@ -438,9 +438,9 @@ function App() {
                   <Mail size={14} />
                   EMAIL DIRECT
                 </a>
-                <a className="quick-chip" href={profile.resume} target="_blank" rel="noreferrer" download>
+                <a className="quick-chip" href={profile.resume} target="_blank" rel="noreferrer">
                   <FileText size={14} />
-                  DOWNLOAD RESUME
+                  RESUME
                 </a>
                 <button className="quick-chip ghost" type="button" onClick={handleCopyEmail}>
                   {copiedEmail ? <Check size={14} /> : <Copy size={14} />}

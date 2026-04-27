@@ -436,7 +436,7 @@ body {
 }
 
 .panel-top > span {
-  color: var(--mid);
+  color: var(--text);
 }
 
 .terminal-meta {
@@ -465,13 +465,13 @@ body {
 }
 
 .detail-list span {
-  color: var(--mid);
+  color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.62rem;
 }
 
 .detail-list strong {
-  color: var(--light);
+  color: var(--white);
   font-family: var(--font-display);
   font-size: 0.76rem;
   text-align: right;
@@ -923,7 +923,7 @@ body {
 
 .contact-note {
   margin: 0;
-  color: var(--mid);
+  color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.08em;
