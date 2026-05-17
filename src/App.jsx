@@ -16,7 +16,6 @@ import {
   Terminal
 } from "lucide-react";
 import ForceFieldBackground from "./components/ForceFieldBackground";
-import SkillsRadar from "./components/SkillsRadar";
 
 const profile = {
   name: "ASTRILO",
@@ -121,8 +120,15 @@ const experience = [
     role: "Junior Member, Technical Team",
     company: "Google Developer Groups (GDG) BPPIMT",
     period: "September 2025 - Present",
-    summary:
-      "Joined the technical team and helped build features for the main GDG website (https://gdgbppimt.vercel.app/). Currently contributing as a junior member.",
+    summary: (
+      <>
+        Joined the technical team and helped build features for the main{' '}
+        <a href="https://gdgbppimt.vercel.app/" target="_blank" rel="noopener noreferrer">
+          GDG website
+        </a>
+        . Currently contributing as a junior member.
+      </>
+    ),
     color: "cyan"
   }
 ];
@@ -130,7 +136,6 @@ const experience = [
 const navItems = [
   ["ABOUT", "about"],
   ["PROJECTS", "projects"],
-  ["SKILLS", "skills"],
   ["JOURNEY", "experience"]
 ];
 
@@ -295,7 +300,7 @@ function App() {
                   <Github size={16} />
                   GITHUB
                 </a>
-                <a href={profile.resume} target="_blank" rel="noreferrer" className="btn btn-outline">
+                <a href={profile.resume} target="_blank" rel="noreferrer" className="btn btn-outline" download>
                   <FileText size={16} />
                   RESUME
                 </a>
@@ -387,16 +392,6 @@ function App() {
           </div>
         </section>
 
-        <section id="skills" className="container section">
-          <SectionHeading index="01.5" title="SKILLS" accent="cyan" note="// DATA_VISUALIZATION" showTrail={true} />
-          
-          <div className="skills-grid" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-            <div style={{ maxWidth: '600px', width: '100%' }}>
-              <SkillsRadar />
-            </div>
-          </div>
-        </section>
-
         <section id="experience" className="container section">
           <SectionHeading index="02" title="JOURNEY" accent="yellow" showTrail={false} />
 
@@ -438,9 +433,9 @@ function App() {
                   <Mail size={14} />
                   EMAIL DIRECT
                 </a>
-                <a className="quick-chip" href={profile.resume} target="_blank" rel="noreferrer">
+                <a className="quick-chip" href={profile.resume} target="_blank" rel="noreferrer" download>
                   <FileText size={14} />
-                  RESUME
+                  DOWNLOAD RESUME
                 </a>
                 <button className="quick-chip ghost" type="button" onClick={handleCopyEmail}>
                   {copiedEmail ? <Check size={14} /> : <Copy size={14} />}
@@ -517,12 +512,6 @@ function App() {
                   <p>leetcode.com/u/CelestialRadiant</p>
                 </div>
               </a>
-              
-              <div style={{ marginTop: '2.5rem', textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                <strong style={{ color: '#ffffff', fontSize: '1.1rem', letterSpacing: '0.05em', textShadow: '0 0 10px rgba(255,255,255,0.5)' }}>
-                  (HIRE ME TO UNLOCK MY TRUE POTENTIAL)
-                </strong>
-              </div>
             </article>
           </div>
         </section>
