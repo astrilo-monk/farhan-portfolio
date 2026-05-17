@@ -98,6 +98,10 @@ const projects = [
   }
 ];
 
+const highlightProjects = ["ascii-art-js", "code-tracer", "saarthi"]
+  .map((title) => projects.find((project) => project.title === title))
+  .filter(Boolean);
+
 const experience = [
 
   {
@@ -192,11 +196,14 @@ function SectionHeading({ index, title, accent = "cyan", showTrail = true, note 
 function App() {
   const now = useClock();
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [showProjectDetails, setShowProjectDetails] = useState(false);
 
   useReveal();
 
   const year = useMemo(() => new Date().getFullYear(), []);
   const contactAction = useMemo(() => `https://formsubmit.co/${profile.email}`, []);
+
+  const toggleProjectDetails = () => setShowProjectDetails((prev) => !prev);
 
   const handleCopyEmail = async () => {
     try {
@@ -396,21 +403,71 @@ function App() {
           <SectionHeading index="02" title="JOURNEY" accent="yellow" showTrail={false} />
 
           <div className="timeline">
-            {experience.map((item, idx) => (
-              <article key={item.role} className={`timeline-item fade-up d${idx + 1}`}>
-                <span className={`timeline-dot ${item.color}`} />
-                <div className="hud-panel">
-                  <div className="timeline-head">
-                    <div>
-                      <h3>{item.role}</h3>
-                      <p className={item.color}>{item.company}</p>
+            {experience.map((item, idx) => {
+              const isProjectLearning = item.role === "Project-Based Learning";
+              const isExpanded = isProjectLearning && showProjectDetails;
+
+              return (
+                <article key={item.role} className={`timeline-item fade-up d${idx + 1}`}>
+                  <span className={`timeline-dot ${item.color}`} />
+                  <div className="hud-panel">
+                    <div className="timeline-head">
+                      <div>
+                        {isProjectLearning ? (
+                          <button
+                            type="button"
+                            className="timeline-toggle"
+                            onClick={toggleProjectDetails}
+                            aria-expanded={isExpanded}
+                            aria-controls="project-learning-panel"
+                          >
+                            <span>{item.role}</span>
+                            <span className="toggle-indicator">{isExpanded ? "-" : "+"}</span>
+                          </button>
+                        ) : (
+                          <h3>{item.role}</h3>
+                        )}
+                        <p className={item.color}>{item.company}</p>
+                      </div>
+                      <span>{item.period}</span>
                     </div>
-                    <span>{item.period}</span>
+                    <p>{item.summary}</p>
+                    {isProjectLearning && isExpanded && (
+                      <div id="project-learning-panel" className="project-learning-panel">
+                        <div className="project-learning-grid">
+                          {highlightProjects.map((project) => (
+                            <article key={project.title} className="mini-project-card">
+                              <div className="mini-project-head">
+                                <h4>{project.title}</h4>
+                                <span>{project.year}</span>
+                              </div>
+                              <p>{project.description}</p>
+                              <div className="tag-row">
+                                {project.tags.map((tag) => (
+                                  <span key={tag} className={`tag ${project.color}`}>
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="project-links">
+                                <a className="project-link" href={project.repo} target="_blank" rel="noreferrer">
+                                  OPEN REPO
+                                </a>
+                                {project.live && (
+                                  <a className="project-link live" href={project.live} target="_blank" rel="noreferrer">
+                                    OPEN LIVE
+                                  </a>
+                                )}
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <p>{item.summary}</p>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </section>
 
