@@ -127,7 +127,12 @@ const experience = [
     summary: (
       <>
         Joined the technical team and helped build features for the main{' '}
-        <a href="https://gdgbppimt.vercel.app/" target="_blank" rel="noopener noreferrer">
+        <a
+          className="timeline-link cyan"
+          href="https://gdgbppimt.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           GDG website
         </a>
         . Currently contributing as a junior member.

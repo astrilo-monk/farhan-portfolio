@@ -819,6 +819,17 @@ body {
   color: var(--magenta);
 }
 
+.timeline-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.08rem;
+}
+
+.timeline-link:hover {
+  color: var(--white);
+}
+
 .timeline-head > span {
   color: var(--cyan);
   border: 1px solid rgba(0, 240, 255, 0.3);
