@@ -16,6 +16,7 @@ import {
   Terminal
 } from "lucide-react";
 import ForceFieldBackground from "./components/ForceFieldBackground";
+import SkillsRadar from "./components/SkillsRadar";
 
 const profile = {
   name: "ASTRILO",
@@ -127,7 +128,12 @@ const experience = [
     summary: (
       <>
         Joined the technical team and helped build features for the main{' '}
-        <a href="https://gdgbppimt.vercel.app/" target="_blank" rel="noopener noreferrer">
+        <a
+          className="timeline-link cyan"
+          href="https://gdgbppimt.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           GDG website
         </a>
         . Currently contributing as a junior member.
@@ -399,8 +405,14 @@ function App() {
           </div>
         </section>
 
+        <section id="skills" className="container section">
+          <SectionHeading index="02" title="SKILLS" accent="cyan" note="// RADAR_MATRIX" />
+
+          <SkillsRadar />
+        </section>
+
         <section id="experience" className="container section">
-          <SectionHeading index="02" title="JOURNEY" accent="yellow" showTrail={false} />
+          <SectionHeading index="03" title="JOURNEY" accent="yellow" showTrail={false} />
 
           <div className="timeline">
             {experience.map((item, idx) => {
@@ -472,7 +484,7 @@ function App() {
         </section>
 
         <section id="contact" className="container section">
-          <SectionHeading index="03" title="CONNECT" accent="cyan" showTrail={false} />
+          <SectionHeading index="04" title="CONNECT" accent="cyan" showTrail={false} />
 
           <div className="contact-grid">
             <article className="hud-panel corner-decor fade-up d1">
