@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import ForceFieldBackground from "./components/ForceFieldBackground";
 import SkillsRadar from "./components/SkillsRadar";
+import ActivityHeatmaps from "./components/ActivityHeatmaps";
 
 const profile = {
   name: "ASTRILO",
@@ -146,6 +147,7 @@ const experience = [
 const navItems = [
   ["ABOUT", "about"],
   ["PROJECTS", "projects"],
+  ["ACTIVITY", "activity"],
   ["JOURNEY", "experience"]
 ];
 
@@ -411,8 +413,14 @@ function App() {
           <SkillsRadar />
         </section>
 
+        <section id="activity" className="container section">
+          <SectionHeading index="03" title="ACTIVITY" accent="magenta" note="// COMMIT_LOG & SOLVE_LOG" />
+
+          <ActivityHeatmaps />
+        </section>
+
         <section id="experience" className="container section">
-          <SectionHeading index="03" title="JOURNEY" accent="yellow" showTrail={false} />
+          <SectionHeading index="04" title="JOURNEY" accent="yellow" showTrail={false} />
 
           <div className="timeline">
             {experience.map((item, idx) => {
@@ -484,7 +492,7 @@ function App() {
         </section>
 
         <section id="contact" className="container section">
-          <SectionHeading index="04" title="CONNECT" accent="cyan" showTrail={false} />
+          <SectionHeading index="05" title="CONNECT" accent="cyan" showTrail={false} />
 
           <div className="contact-grid">
             <article className="hud-panel corner-decor fade-up d1">

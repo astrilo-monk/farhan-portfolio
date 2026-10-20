@@ -1460,3 +1460,140 @@ body {
   line-height: 1.5;
   margin: 0;
 }
+
+/* ---------- Activity heatmaps ---------- */
+.activity-stack {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.activity-title {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.activity-title h3 {
+  margin: 0;
+  color: var(--white);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.05em;
+}
+
+.activity-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+
+.activity-stat {
+  border: 1px solid var(--border);
+  background: rgba(10, 6, 16, 0.55);
+  padding: 0.6rem 0.75rem;
+}
+
+.activity-stat span {
+  display: block;
+  color: var(--mid);
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+}
+
+.activity-stat strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--white);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.activity-chips {
+  margin-bottom: 1.1rem;
+}
+
+.heatmap-wrap {
+  transition: opacity 0.4s;
+}
+
+.heatmap-wrap.is-dim {
+  opacity: 0.45;
+}
+
+.heatmap-scroll {
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+}
+
+.heatmap-scroll .heatmap {
+  display: block;
+  width: 100%;
+  min-width: 680px;
+  height: auto;
+}
+
+.hm-label {
+  fill: var(--text);
+  opacity: 0.6;
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.hm-cell {
+  stroke: transparent;
+  stroke-width: 1;
+}
+
+.hm-cell:not(.static):hover {
+  stroke: var(--white);
+}
+
+.heatmap.green .l0 { fill: rgba(255, 255, 255, 0.06); }
+.heatmap.green .l1 { fill: #0e4429; }
+.heatmap.green .l2 { fill: #006d32; }
+.heatmap.green .l3 { fill: #26a641; }
+.heatmap.green .l4 { fill: #39d353; filter: drop-shadow(0 0 3px rgba(57, 211, 83, 0.7)); }
+
+.heatmap.gold .l0 { fill: rgba(255, 255, 255, 0.06); }
+.heatmap.gold .l1 { fill: #4a3508; }
+.heatmap.gold .l2 { fill: #8a6410; }
+.heatmap.gold .l3 { fill: #d9960f; }
+.heatmap.gold .l4 { fill: #ffc21a; filter: drop-shadow(0 0 3px rgba(255, 194, 26, 0.7)); }
+
+.activity-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+
+.activity-readout {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+}
+
+.hm-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--mid);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+}
