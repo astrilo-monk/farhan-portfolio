@@ -1597,3 +1597,79 @@ body {
   font-family: var(--font-mono);
   font-size: 0.58rem;
 }
+
+/* ---------- Projects: see-more card, all-projects page ---------- */
+.project-head > span.status-wip {
+  color: var(--yellow);
+  border-color: rgba(255, 230, 0, 0.4);
+  background: rgba(255, 230, 0, 0.06);
+  letter-spacing: 0.08em;
+}
+
+.see-more-card {
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  border-style: dashed;
+  border-color: rgba(255, 0, 170, 0.35);
+  cursor: pointer;
+}
+
+.see-more-card .see-more-icon {
+  display: grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  margin-bottom: 1rem;
+  color: var(--magenta);
+  border: 1px solid rgba(255, 0, 170, 0.5);
+  border-radius: 50%;
+  transition: transform 0.38s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.38s;
+}
+
+.see-more-card:hover {
+  border-color: rgba(255, 0, 170, 0.7);
+  box-shadow: 0 0 30px rgba(255, 0, 170, 0.12);
+}
+
+.see-more-card:hover .see-more-icon {
+  transform: rotate(90deg);
+  box-shadow: 0 0 18px rgba(255, 0, 170, 0.4);
+}
+
+.see-more-card .project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 1.6rem;
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--white);
+}
+
+.projects-page {
+  padding-top: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.projects-page-intro {
+  max-width: 60ch;
+  margin: -0.8rem 0 2rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
