@@ -1,23 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  BrainCircuit,
   Check,
   Code2,
   Copy,
-  Cloud,
   FileText,
   FolderOpen,
   Github,
   Linkedin,
   Mail,
-  Monitor,
-  Send,
-  Server,
-  Terminal
+  Plus,
+  ArrowRight,
+  Send
 } from "lucide-react";
 import ForceFieldBackground from "./components/ForceFieldBackground";
 import SkillsRadar from "./components/SkillsRadar";
 import ActivityHeatmaps from "./components/ActivityHeatmaps";
+import ProjectCard from "./components/ProjectCard";
+import ProjectsPage from "./components/ProjectsPage";
+import SectionHeading from "./components/SectionHeading";
+import { featuredProjects, getProject, projects } from "./projectsData";
 
 const profile = {
   name: "ASTRILO",
@@ -34,75 +35,7 @@ const profile = {
   email: "mdowaisfarhanakhter561@gmail.com"
 };
 
-const projects = [
-  {
-    title: "ascii-art-js",
-    year: "2026",
-    description:
-      "A JavaScript project for generating and experimenting with ASCII art output in the browser.",
-    tags: ["JavaScript", "Frontend", "Creative Coding"],
-    icon: Terminal,
-    repo: "https://github.com/astrilo-monk/ascii-art-js",
-    live: "https://ascii-art-liart.vercel.app",
-    color: "cyan"
-  },
-  {
-    title: "code-tracer",
-    year: "2026",
-    description:
-      "A tool-focused project for tracing and understanding code flow, useful for debugging and learning.",
-    tags: ["Developer Tools", "Debugging", "JavaScript"],
-    icon: Monitor,
-    repo: "https://github.com/astrilo-monk/code-tracer",
-    live: "https://code-tracer-liart.vercel.app/",
-    color: "magenta"
-  },
-  {
-    title: "saarthi",
-    year: "2025",
-    description:
-      "An assistant-style application focused on helping users with guided interactions and practical workflows.",
-    tags: ["App Development", "UX", "JavaScript"],
-    icon: Cloud,
-    repo: "https://github.com/astrilo-monk/saarthi",
-    live: "https://saarthi-astrilo-monk.vercel.app/",
-    color: "yellow"
-  },
-  {
-    title: "emotion-tracker",
-    year: "2025",
-    description:
-      "A project for tracking and visualizing emotional trends and user input patterns over time.",
-    tags: ["Tracking", "Data", "Visualization"],
-    icon: BrainCircuit,
-    repo: "https://github.com/astrilo-monk/emotion-tracker",
-    color: "cyan"
-  },
-  {
-    title: "repl",
-    year: "2025",
-    description:
-      "An interactive REPL-style project for running and testing code snippets in a quick feedback loop.",
-    tags: ["REPL", "Tooling", "Learning"],
-    icon: Server,
-    repo: "https://github.com/astrilo-monk/repl",
-    color: "yellow"
-  },
-  {
-    title: "http-server-java",
-    year: "2026",
-    description:
-      "A Java-based HTTP server project focused on backend fundamentals, request handling, and server-side architecture.",
-    tags: ["Java", "HTTP", "Backend"],
-    icon: Server,
-    repo: "https://github.com/astrilo-monk/http-server-java",
-    color: "magenta"
-  }
-];
-
-const highlightProjects = ["ascii-art-js", "code-tracer", "saarthi"]
-  .map((title) => projects.find((project) => project.title === title))
-  .filter(Boolean);
+const highlightProjects = ["netauditai", "code-tracer", "saarthi"].map(getProject).filter(Boolean);
 
 const experience = [
 
@@ -167,7 +100,7 @@ function useClock() {
   return time;
 }
 
-function useReveal() {
+function useReveal(route) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -184,21 +117,21 @@ function useReveal() {
     targets.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
-  }, []);
+  }, [route]);
 }
 
-function SectionHeading({ index, title, accent = "cyan", showTrail = true, note = "" }) {
-  return (
-    <div className="section-title fade-up">
-      <div className="section-index-wrap">
-        <span className={`section-index ${accent}`}>{index}</span>
-        <div className={`section-index-line ${accent}`} />
-      </div>
-      <h2>{title}</h2>
-      {showTrail && <div className="section-trail" />}
-      {note && <span className="section-note">{note}</span>}
-    </div>
-  );
+// Tiny hash router: "#/projects" shows the all-projects page, anything else is the home page.
+function useRoute() {
+  const read = () => (window.location.hash.startsWith("#/projects") ? "projects" : "home");
+  const [route, setRoute] = useState(read);
+
+  useEffect(() => {
+    const onChange = () => setRoute(read());
+    window.addEventListener("hashchange", onChange);
+    return () => window.removeEventListener("hashchange", onChange);
+  }, []);
+
+  return route;
 }
 
 function App() {
@@ -206,7 +139,17 @@ function App() {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [showProjectDetails, setShowProjectDetails] = useState(false);
 
-  useReveal();
+  const route = useRoute();
+  useReveal(route);
+
+  useEffect(() => {
+    if (route === "projects") {
+      window.scrollTo(0, 0);
+      return;
+    }
+    const id = window.location.hash.slice(1);
+    if (id) requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+  }, [route]);
 
   const year = useMemo(() => new Date().getFullYear(), []);
   const contactAction = useMemo(() => `https://formsubmit.co/${profile.email}`, []);
@@ -276,6 +219,10 @@ function App() {
       </nav>
 
       <main>
+        {route === "projects" ? (
+          <ProjectsPage />
+        ) : (
+          <>
         <section id="about" className="hero container">
           <div className="hero-grid">
             <div>
@@ -372,38 +319,23 @@ function App() {
           <SectionHeading index="01" title="PROJECTS" accent="magenta" note="// SELECTED_WORK" />
 
           <div className="projects-grid">
-            {projects.map((project, idx) => {
-              const Icon = project.icon;
-              return (
-                <article key={project.title} className={`hud-panel corner-decor project-card fade-up d${idx + 1}`}>
-                  <div className="project-head">
-                    <div className={`hex-badge ${project.color}`}>
-                      <Icon size={20} />
-                    </div>
-                    <span>{project.year}</span>
-                  </div>
-                  <h3>{project.title}</h3>
-                  <p>{project.description}</p>
-                  <div className="tag-row">
-                    {project.tags.map((tag) => (
-                      <span key={tag} className={`tag ${project.color}`}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="project-links">
-                    <a className="project-link" href={project.repo} target="_blank" rel="noreferrer">
-                      OPEN REPO
-                    </a>
-                    {project.live && (
-                      <a className="project-link live" href={project.live} target="_blank" rel="noreferrer">
-                        OPEN LIVE
-                      </a>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+            {featuredProjects.map((project, idx) => (
+              <ProjectCard key={project.title} project={project} index={idx} />
+            ))}
+
+            <a href="#/projects" className="hud-panel corner-decor project-card see-more-card fade-up d5">
+              <div className="see-more-icon">
+                <Plus size={26} />
+              </div>
+              <h3>SEE MORE</h3>
+              <p>
+                {projects.length - featuredProjects.length} more builds, experiments and works in progress.
+              </p>
+              <span className="project-link">
+                VIEW ALL {projects.length} PROJECTS
+                <ArrowRight size={12} />
+              </span>
+            </a>
           </div>
         </section>
 
@@ -471,7 +403,7 @@ function App() {
                               </div>
                               <div className="project-links">
                                 <a className="project-link" href={project.repo} target="_blank" rel="noreferrer">
-                                  OPEN REPO
+                                  {project.repoLabel || "OPEN REPO"}
                                 </a>
                                 {project.live && (
                                   <a className="project-link live" href={project.live} target="_blank" rel="noreferrer">
@@ -592,6 +524,8 @@ function App() {
             </article>
           </div>
         </section>
+          </>
+        )}
       </main>
 
       <footer className="footer">
