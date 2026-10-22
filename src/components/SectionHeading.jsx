@@ -1,13 +1,13 @@
-export default function SectionHeading({ index, title, accent = "cyan", showTrail = true, note = "" }) {
+export default function SectionHeading({ cmd, title, note }) {
   return (
-    <div className="section-title fade-up">
-      <div className="section-index-wrap">
-        <span className={`section-index ${accent}`}>{index}</span>
-        <div className={`section-index-line ${accent}`} />
+    <div className="sec-head reveal">
+      <p className="sec-cmd">
+        <span className="p">$</span> {cmd}
+      </p>
+      <div className="sec-title-row">
+        <h2>{title}</h2>
+        {note && <span className="sec-note">{note}</span>}
       </div>
-      <h2>{title}</h2>
-      {showTrail && <div className="section-trail" />}
-      {note && <span className="section-note">{note}</span>}
     </div>
   );
 }

@@ -1,33 +1,41 @@
-export default function ProjectCard({ project, index = 0 }) {
+import { ArrowUpRight } from "lucide-react";
+
+export function ProjectLinks({ project }) {
+  return (
+    <div className="proj-links">
+      <a href={project.repo} target="_blank" rel="noreferrer">
+        {project.repoLabel ? project.repoLabel.toLowerCase() : "repo"} <ArrowUpRight size={12} />
+      </a>
+      {project.live && (
+        <a className="live" href={project.live} target="_blank" rel="noreferrer">
+          live <ArrowUpRight size={12} />
+        </a>
+      )}
+    </div>
+  );
+}
+
+export default function ProjectCard({ project }) {
   const Icon = project.icon;
 
   return (
-    <article className={`hud-panel corner-decor project-card fade-up d${(index % 5) + 1}`}>
-      <div className="project-head">
-        <div className={`hex-badge ${project.color}`}>
-          <Icon size={20} />
-        </div>
-        {project.status ? <span className="status-wip">{project.status}</span> : <span>{project.year}</span>}
+    <article className="card proj-card reveal">
+      <div className="proj-top">
+        <span className="proj-name">
+          <Icon size={15} />
+          {project.title}
+        </span>
+        {project.status ? <span className="badge-wip">{project.status.toLowerCase()}</span> : <span className="proj-year">{project.year}</span>}
       </div>
-      <h3>{project.title}</h3>
-      <p>{project.description}</p>
-      <div className="tag-row">
+      <p className="proj-desc">{project.description}</p>
+      <div className="tags">
         {project.tags.map((tag) => (
-          <span key={tag} className={`tag ${project.color}`}>
+          <span key={tag} className="tag">
             {tag}
           </span>
         ))}
       </div>
-      <div className="project-links">
-        <a className="project-link" href={project.repo} target="_blank" rel="noreferrer">
-          {project.repoLabel || "OPEN REPO"}
-        </a>
-        {project.live && (
-          <a className="project-link live" href={project.live} target="_blank" rel="noreferrer">
-            OPEN LIVE
-          </a>
-        )}
-      </div>
+      <ProjectLinks project={project} />
     </article>
   );
 }
