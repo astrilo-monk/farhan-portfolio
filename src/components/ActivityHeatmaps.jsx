@@ -160,7 +160,7 @@ function Legend({ theme }) {
   );
 }
 
-function ActivityPanel({ title, badge, icon: Icon, theme, href, unit, status, weeks, stats, extraChips, delay }) {
+function ActivityPanel({ title, fileName, icon: Icon, theme, href, unit, status, weeks, stats, extraChips }) {
   const [hover, setHover] = useState(null);
   const s = useMemo(() => computeStats(weeks), [weeks]);
 
@@ -173,18 +173,23 @@ function ActivityPanel({ title, badge, icon: Icon, theme, href, unit, status, we
         : "Hover a square for details";
 
   return (
-    <article className={`hud-panel corner-decor activity-panel fade-up d${delay}`}>
-      <div className="activity-head">
-        <div className="activity-title">
-          <div className={`hex-badge ${badge}`}>
-            <Icon size={20} />
-          </div>
-          <h3>{title}</h3>
-        </div>
-        <a className="project-link" href={href} target="_blank" rel="noreferrer">
-          OPEN PROFILE
+    <article className="win activity-panel reveal">
+      <div className="win-bar">
+        <span className="win-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="win-title">
+          <Icon size={13} /> {fileName}
+        </span>
+        <a className="win-link" href={href} target="_blank" rel="noreferrer">
+          open profile
         </a>
       </div>
+
+      <div className="win-body">
+        <h3 className="activity-title">{title}</h3>
 
       <div className="activity-stats">
         {stats(s).map(([label, value]) => (
@@ -195,7 +200,7 @@ function ActivityPanel({ title, badge, icon: Icon, theme, href, unit, status, we
         ))}
       </div>
 
-      {extraChips && status === "ready" && <div className="tag-row activity-chips">{extraChips}</div>}
+      {extraChips && status === "ready" && <div className="tags activity-chips">{extraChips}</div>}
 
       <div className={`heatmap-wrap ${status === "ready" ? "" : "is-dim"}`}>
         <Heatmap weeks={weeks} theme={theme} label={`${title} activity over the last year`} onHover={setHover} />
@@ -204,6 +209,7 @@ function ActivityPanel({ title, badge, icon: Icon, theme, href, unit, status, we
       <div className="activity-foot">
         <p className="activity-readout">{readout}</p>
         <Legend theme={theme} />
+      </div>
       </div>
     </article>
   );
@@ -251,43 +257,41 @@ function ActivityHeatmaps() {
   return (
     <div className="activity-stack">
       <ActivityPanel
-        title="GitHub Contributions"
-        badge="cyan"
+        title="GitHub contributions"
+        fileName="github.contributions"
         icon={Github}
         theme="green"
         href={GITHUB_URL}
         unit={{ one: "contribution", many: "contributions" }}
         status={github.status}
         weeks={githubWeeks}
-        delay={1}
         stats={(s) => [
-          ["CONTRIBUTIONS", s.total],
-          ["ACTIVE DAYS", s.active],
-          ["CURRENT STREAK", `${s.current}d`],
-          ["LONGEST STREAK", `${s.longest}d`]
+          ["contributions", s.total],
+          ["active days", s.active],
+          ["current streak", `${s.current}d`],
+          ["longest streak", `${s.longest}d`]
         ]}
       />
 
       <ActivityPanel
-        title="LeetCode Submissions"
-        badge="yellow"
+        title="LeetCode submissions"
+        fileName="leetcode.submissions"
         icon={Code2}
         theme="gold"
         href={LEETCODE_URL}
         unit={{ one: "submission", many: "submissions" }}
         status={leetcode.status}
         weeks={leetcodeWeeks}
-        delay={2}
         stats={(s) => [
-          ["PROBLEMS SOLVED", solved.All ?? "--"],
-          ["SUBMISSIONS", s.total],
-          ["ACTIVE DAYS", s.active],
-          ["CURRENT STREAK", `${s.current}d`],
-          ["LONGEST STREAK", `${s.longest}d`]
+          ["problems solved", solved.All ?? "--"],
+          ["submissions", s.total],
+          ["active days", s.active],
+          ["current streak", `${s.current}d`],
+          ["longest streak", `${s.longest}d`]
         ]}
         extraChips={["Easy", "Medium", "Hard"].map((level) => (
-          <span key={level} className={`tag ${level === "Easy" ? "cyan" : level === "Medium" ? "yellow" : "magenta"}`}>
-            {level.toUpperCase()} {solved[level] ?? 0}
+          <span key={level} className={`tag ${level === "Easy" ? "t-green" : level === "Medium" ? "t-amber" : "t-red"}`}>
+            {level.toLowerCase()} {solved[level] ?? 0}
           </span>
         ))}
       />
