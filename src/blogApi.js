@@ -37,6 +37,7 @@ export const login = (password) => request("/api/blog-login", { method: "POST", 
 export const createPost = (token, input) => request("/api/blog", { method: "POST", token, body: input }).then((d) => d.post);
 export const updatePost = (token, id, input) =>
   request(`/api/blog?id=${encodeURIComponent(id)}`, { method: "PUT", token, body: input }).then((d) => d.post);
+export const uploadImage = (token, input) => request("/api/blog-upload", { method: "POST", token, body: input });
 export const removePost = (token, id) => request(`/api/blog?id=${encodeURIComponent(id)}`, { method: "DELETE", token });
 
 export const formatDate = (iso) =>
@@ -47,6 +48,7 @@ export const readingMinutes = (text) => Math.max(1, Math.round(text.trim().split
 export const excerpt = (markdown, length = 150) => {
   const plain = markdown
     .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[[^\]]*\]\((?:[^()]|\([^()]*\))*\)/g, " ")
     .replace(/^#{1,3}\s+/gm, "")
     .replace(/^>\s?/gm, "")
     .replace(/^[-*]\s+/gm, "")

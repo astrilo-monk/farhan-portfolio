@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
-import { MOODS } from "../blogApi";
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus } from "lucide-react";
+import { MOODS, uploadImage } from "../blogApi";
+import { altFromFilename, blobToBase64, prepareImage } from "../imageUpload";
 import { useBlogAuth } from "./BlogAuth";
 import Markdown from "./Markdown";
 
@@ -7,13 +9,71 @@ const BODY_MAX = 20000;
 const TITLE_MAX = 120;
 
 export default function BlogEditor({ initial, submitLabel = "publish", onSubmit, onCancel, draftKey }) {
-  const { lock } = useBlogAuth();
+  const { lock, token } = useBlogAuth();
   const [title, setTitle] = useState(initial.title);
   const [body, setBody] = useState(initial.body);
   const [mood, setMood] = useState(initial.mood);
   const [tab, setTab] = useState("write");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uploads, setUploads] = useState(0);
+  const [uploadError, setUploadError] = useState("");
+  const [dragging, setDragging] = useState(false);
+  const textRef = useRef(null);
+  const fileRef = useRef(null);
+  const bodyRef = useRef(body);
+  const cursorRef = useRef(null);
+  bodyRef.current = body;
+
+  // After inserting an image, put the caret right after it.
+  useEffect(() => {
+    if (cursorRef.current !== null && textRef.current) {
+      textRef.current.selectionStart = cursorRef.current;
+      textRef.current.selectionEnd = cursorRef.current;
+      cursorRef.current = null;
+    }
+  }, [body]);
+
+  const insertAtCursor = (markdown) => {
+    const el = textRef.current;
+    const current = bodyRef.current;
+    const start = el ? el.selectionStart : current.length;
+    const end = el ? el.selectionEnd : current.length;
+    const before = current.slice(0, start);
+    const after = current.slice(end);
+    const lead = !before || before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n";
+    const insertion = `${lead}${markdown}\n\n`;
+    cursorRef.current = before.length + insertion.length;
+    setBody(`${before}${insertion}${after.replace(/^\n+/, "")}`);
+  };
+
+  const handleFiles = async (fileList) => {
+    const files = [...fileList].filter((file) => file.type.startsWith("image/"));
+    if (files.length === 0) {
+      setUploadError("Only image files can be added.");
+      return;
+    }
+    setUploadError("");
+    for (const file of files) {
+      setUploads((n) => n + 1);
+      try {
+        const { blob, type } = await prepareImage(file);
+        const data = await blobToBase64(blob);
+        const { url } = await uploadImage(token, { type, data });
+        insertAtCursor(`![${altFromFilename(file.name)}](${url})`);
+      } catch (err) {
+        if (err.status === 401) {
+          lock();
+          setUploadError("Session expired. Close this and unlock again (your draft is saved).");
+        } else {
+          setUploadError(err.message);
+        }
+        break;
+      } finally {
+        setUploads((n) => n - 1);
+      }
+    }
+  };
 
   // Restore an unfinished draft (new posts only), once.
   useEffect(() => {
@@ -113,20 +173,67 @@ export default function BlogEditor({ initial, submitLabel = "publish", onSubmit,
         </fieldset>
 
         {tab === "write" ? (
-          <textarea
-            className="editor-text"
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
-            maxLength={BODY_MAX}
-            rows={14}
-            placeholder={"Write anything...\n\n# Heading   **bold**   `code`   - list   > quote   [link](https://...)"}
-            aria-label="Post body"
-            required
-          />
+          <>
+            <div className="editor-toolbar">
+              <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
+                <ImagePlus size={15} /> add image
+              </button>
+              <span className="dim">
+                {uploads > 0 ? `uploading ${uploads}...` : "or drag, drop or paste photos into the text"}
+              </span>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(event) => {
+                  handleFiles(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+            </div>
+            <textarea
+              ref={textRef}
+              className={`editor-text${dragging ? " dragging" : ""}`}
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              onPaste={(event) => {
+                const images = [...event.clipboardData.files].filter((file) => file.type.startsWith("image/"));
+                if (images.length) {
+                  event.preventDefault();
+                  handleFiles(images);
+                }
+              }}
+              onDragOver={(event) => {
+                if ([...event.dataTransfer.types].includes("Files")) {
+                  event.preventDefault();
+                  setDragging(true);
+                }
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragging(false);
+                handleFiles(event.dataTransfer.files);
+              }}
+              maxLength={BODY_MAX}
+              rows={14}
+              placeholder={"Write anything...\n\n# Heading   **bold**   `code`   - list   > quote   [link](https://...)"}
+              aria-label="Post body"
+              required
+            />
+          </>
         ) : (
           <div className="editor-preview">
             {body.trim() ? <Markdown source={body} /> : <p className="dim">Nothing to preview yet.</p>}
           </div>
+        )}
+
+        {uploadError && (
+          <p className="form-error" role="alert">
+            {uploadError}
+          </p>
         )}
 
         {error && (
@@ -143,7 +250,7 @@ export default function BlogEditor({ initial, submitLabel = "publish", onSubmit,
             <button type="button" className="btn" onClick={onCancel}>
               cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={busy || !title.trim() || !body.trim()}>
+            <button type="submit" className="btn btn-primary" disabled={busy || uploads > 0 || !title.trim() || !body.trim()}>
               {busy ? "saving..." : submitLabel}
             </button>
           </div>

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { bearerToken, verifyToken } from "../server/blogAuth.js";
-import { deletePost, getPost, listPosts, savePost, storageConfigured } from "../server/blogStore.js";
+import { deleteImages, deletePost, getPost, listPosts, savePost, storageConfigured } from "../server/blogStore.js";
 
 const MOODS = ["hamster", "glasses", "writer", "drool"];
 const TITLE_MAX = 120;
@@ -13,6 +13,22 @@ const slugify = (text) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
+
+// Uploaded images are referenced in posts as /api/blog-image?id=<16 hex>.
+const imageIds = (text) => new Set([...text.matchAll(/\/api\/blog-image\?id=([a-f0-9]{16})/g)].map((m) => m[1]));
+
+// Delete images that no remaining post still uses (best effort, never blocks the main action).
+async function pruneImages(removed, otherBodies) {
+  if (removed.size === 0) return;
+  try {
+    const stillUsed = new Set(otherBodies.flatMap((body) => [...imageIds(body)]));
+    await deleteImages([...removed].filter((id) => !stillUsed.has(id)));
+  } catch {
+    // an orphaned image is harmless
+  }
+}
+
+const otherPostBodies = async (id) => (await listPosts()).filter((post) => post.id !== id).map((post) => post.body);
 
 function readInput(body) {
   const title = typeof body?.title === "string" ? body.title.trim() : "";
@@ -82,10 +98,15 @@ export default async function handler(req, res) {
 
       const post = { ...existing, ...input, updatedAt: new Date().toISOString() };
       await savePost(post);
+
+      const kept = imageIds(post.body);
+      const removed = new Set([...imageIds(existing.body)].filter((imageId) => !kept.has(imageId)));
+      if (removed.size) await pruneImages(removed, [...(await otherPostBodies(id)), post.body]);
       return res.status(200).json({ post });
     }
 
     await deletePost(id);
+    await pruneImages(imageIds(existing.body), await otherPostBodies(id));
     return res.status(200).json({ ok: true });
   } catch {
     return res.status(500).json({ error: "Something went wrong on the server." });

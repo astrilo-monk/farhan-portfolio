@@ -33,6 +33,9 @@ function withBreaks(lines, keyPrefix) {
   return lines.flatMap((line, i) => (i === 0 ? renderInline(line, `${keyPrefix}-${i}`) : [<br key={`${keyPrefix}-br${i}`} />, ...renderInline(line, `${keyPrefix}-${i}`)]));
 }
 
+// Images must sit on their own line. Only our own uploads or https URLs are allowed.
+const IMAGE_LINE = /^!\[([^\]]*)\]\(((?:\/api\/blog-image\?id=[a-f0-9]{16})|(?:https:\/\/[^\s)]+))\)\s*$/;
+
 export default function Markdown({ source }) {
   const lines = source.replace(/\r\n/g, "\n").split("\n");
   const blocks = [];
@@ -80,15 +83,23 @@ export default function Markdown({ source }) {
           ))}
         </ul>
       );
+    } else if (IMAGE_LINE.test(line)) {
+      const [, alt, src] = line.match(IMAGE_LINE);
+      blocks.push(
+        <figure key={key}>
+          <a href={src} target="_blank" rel="noopener noreferrer">
+            <img src={src} alt={alt} loading="lazy" />
+          </a>
+        </figure>
+      );
+      i += 1;
     } else if (line.trim() === "") {
       i += 1;
     } else {
-      const para = [];
-      while (
-        i < lines.length &&
-        lines[i].trim() !== "" &&
-        !/^(```|#{1,3}\s|>\s?|[-*]\s)/.test(lines[i])
-      ) {
+      // Always consume the first line so a malformed line can never loop forever.
+      const para = [line];
+      i += 1;
+      while (i < lines.length && lines[i].trim() !== "" && !/^(```|#{1,3}\s|>\s?|[-*]\s|!\[)/.test(lines[i])) {
         para.push(lines[i]);
         i += 1;
       }

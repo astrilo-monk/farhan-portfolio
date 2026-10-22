@@ -61,3 +61,15 @@ export async function recordFailure(ip) {
 }
 
 export const clearFailures = (ip) => run([["DEL", limitKey(ip)]]);
+
+// ----- uploaded images (stored as base64 in one hash; served via /api/blog-image) -----
+const IMAGES_KEY = "blog:images";
+
+export const saveImage = (id, record) => run([["HSET", IMAGES_KEY, id, JSON.stringify(record)]]);
+
+export async function getImage(id) {
+  const [raw] = await run([["HGET", IMAGES_KEY, id]]);
+  return raw ? JSON.parse(raw) : null;
+}
+
+export const deleteImages = (ids) => (ids.length ? run([["HDEL", IMAGES_KEY, ...ids]]) : Promise.resolve());
