@@ -1,0 +1,2575 @@
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..c06e4c5
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,6 @@
++# Copy to .env.local for local development. NEVER commit real values.
++# Choose a long passphrase (it protects the blog writing endpoints).
++BLOG_PASSWORD=
++# Provided automatically by Vercel's Upstash Redis integration:
++UPSTASH_REDIS_REST_URL=
++UPSTASH_REDIS_REST_TOKEN=
+diff --git a/api/blog-login.js b/api/blog-login.js
+new file mode 100644
+index 0000000..e1e95a3
+--- /dev/null
++++ b/api/blog-login.js
+@@ -0,0 +1,35 @@
++import { clientIp, issueToken, passwordConfigured, passwordMatches } from "../server/blogAuth.js";
++import { clearFailures, failedAttempts, recordFailure, storageConfigured } from "../server/blogStore.js";
++
++const MAX_FAILURES = 5;
++const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
++
++// POST /api/blog-login  { password }  ->  { token, expiresAt }
++export default async function handler(req, res) {
++  res.setHeader("Cache-Control", "no-store");
++
++  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed." });
++  if (!passwordConfigured() || !storageConfigured()) {
++    return res.status(503).json({ error: "The blog is not set up yet." });
++  }
++
++  const ip = clientIp(req);
++  try {
++    if ((await failedAttempts(ip)) >= MAX_FAILURES) {
++      return res.status(429).json({ error: "Too many wrong attempts. Try again in 10 minutes." });
++    }
++
++    const password = typeof req.body?.password === "string" ? req.body.password : "";
++    if (!password || !passwordMatches(password)) {
++      await recordFailure(ip);
++      await sleep(400); // small delay slows down guessing
++      return res.status(401).json({ error: "Wrong password." });
++    }
++
++    await clearFailures(ip);
++    return res.status(200).json(issueToken());
++  } catch {
++    // If the limiter store is down we fail closed rather than allow unlimited guesses.
++    return res.status(503).json({ error: "Login is unavailable right now. Try again shortly." });
++  }
++}
+diff --git a/api/blog.js b/api/blog.js
+new file mode 100644
+index 0000000..850d3ef
+--- /dev/null
++++ b/api/blog.js
+@@ -0,0 +1,93 @@
++import crypto from "node:crypto";
++import { bearerToken, verifyToken } from "../server/blogAuth.js";
++import { deletePost, getPost, listPosts, savePost, storageConfigured } from "../server/blogStore.js";
++
++const MOODS = ["hamster", "glasses", "writer", "drool"];
++const TITLE_MAX = 120;
++const BODY_MAX = 20000;
++
++const slugify = (text) =>
++  text
++    .toLowerCase()
++    .normalize("NFKD")
++    .replace(/[^a-z0-9]+/g, "-")
++    .replace(/^-+|-+$/g, "")
++    .slice(0, 40);
++
++function readInput(body) {
++  const title = typeof body?.title === "string" ? body.title.trim() : "";
++  const text = typeof body?.body === "string" ? body.body.replace(/\r\n/g, "\n").trim() : "";
++  const mood = MOODS.includes(body?.mood) ? body.mood : "hamster";
++
++  if (!title) return { error: "Give the post a title." };
++  if (title.length > TITLE_MAX) return { error: `Title is too long (max ${TITLE_MAX} characters).` };
++  if (!text) return { error: "The post is empty." };
++  if (text.length > BODY_MAX) return { error: `Post is too long (max ${BODY_MAX} characters).` };
++  return { title, body: text, mood };
++}
++
++// GET    /api/blog          -> { posts }            (public)
++// GET    /api/blog?id=...   -> { post }             (public)
++// POST   /api/blog          -> create               (token required)
++// PUT    /api/blog?id=...   -> update               (token required)
++// DELETE /api/blog?id=...   -> delete               (token required)
++export default async function handler(req, res) {
++  res.setHeader("Cache-Control", "no-store");
++
++  if (!storageConfigured()) return res.status(503).json({ error: "The blog is not set up yet." });
++
++  const id = typeof req.query?.id === "string" ? req.query.id : "";
++  if (id && !/^[a-z0-9-]{1,80}$/.test(id)) return res.status(400).json({ error: "Bad post id." });
++
++  try {
++    if (req.method === "GET") {
++      if (id) {
++        const post = await getPost(id);
++        return post ? res.status(200).json({ post }) : res.status(404).json({ error: "Post not found." });
++      }
++      return res.status(200).json({ posts: await listPosts() });
++    }
++
++    if (!["POST", "PUT", "DELETE"].includes(req.method)) {
++      return res.status(405).json({ error: "Method not allowed." });
++    }
++
++    // Every write needs a valid, unexpired token from /api/blog-login.
++    if (!verifyToken(bearerToken(req))) {
++      return res.status(401).json({ error: "Unlock the blog first." });
++    }
++
++    if (req.method === "POST") {
++      const input = readInput(req.body);
++      if (input.error) return res.status(400).json({ error: input.error });
++
++      const now = new Date().toISOString();
++      const post = {
++        id: `${slugify(input.title) || "post"}-${crypto.randomBytes(3).toString("hex")}`,
++        ...input,
++        createdAt: now,
++        updatedAt: now
++      };
++      await savePost(post);
++      return res.status(201).json({ post });
++    }
++
++    if (!id) return res.status(400).json({ error: "Missing post id." });
++    const existing = await getPost(id);
++    if (!existing) return res.status(404).json({ error: "Post not found." });
++
++    if (req.method === "PUT") {
++      const input = readInput(req.body);
++      if (input.error) return res.status(400).json({ error: input.error });
++
++      const post = { ...existing, ...input, updatedAt: new Date().toISOString() };
++      await savePost(post);
++      return res.status(200).json({ post });
++    }
++
++    await deletePost(id);
++    return res.status(200).json({ ok: true });
++  } catch {
++    return res.status(500).json({ error: "Something went wrong on the server." });
++  }
++}
+diff --git a/public/blog/drool.webp b/public/blog/drool.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..c7b8d34082737d129b6cea2f8a809d23233a1cfa
+GIT binary patch
+literal 8480
+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
+Og%lL7AOHXW0002jqLMfO
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/blog/glasses.webp b/public/blog/glasses.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..64cb2c15136d980353a3f4d0a5534de918893b3e
+GIT binary patch
+literal 6220
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/blog/hamster.webp b/public/blog/hamster.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..d7ea90c97fe3ef120be102c7647649e23cc995a7
+GIT binary patch
+literal 8080
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/blog/writer.webp b/public/blog/writer.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..fedffde8926dedadd5e6b72d701c22fce72688b2
+GIT binary patch
+literal 15526
+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
+H|M-6ZT>&`E
+
+literal 0
+HcmV?d00001
+
+diff --git a/server/blogAuth.js b/server/blogAuth.js
+new file mode 100644
+index 0000000..a5a82ca
+--- /dev/null
++++ b/server/blogAuth.js
+@@ -0,0 +1,52 @@
++import crypto from "node:crypto";
++
++// The blog password lives ONLY in the BLOG_PASSWORD environment variable on the
++// server. It is never sent to the browser. Logging in swaps the password for a
++// short-lived signed token; every write request must carry a valid token.
++
++const TOKEN_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
++
++export const passwordConfigured = () => {
++  const pw = process.env.BLOG_PASSWORD;
++  return typeof pw === "string" && pw.length >= 8;
++};
++
++const sha256 = (value) => crypto.createHash("sha256").update(String(value)).digest();
++
++// Hash both sides so lengths match, then compare in constant time.
++export const passwordMatches = (input) => crypto.timingSafeEqual(sha256(input), sha256(process.env.BLOG_PASSWORD));
++
++// Signing key is derived from the password, so changing BLOG_PASSWORD
++// instantly invalidates every token that was already issued.
++const signingKey = () => crypto.createHmac("sha256", process.env.BLOG_PASSWORD).update("blog-token-v1").digest();
++
++const sign = (payload) => crypto.createHmac("sha256", signingKey()).update(payload).digest("base64url");
++
++export function issueToken() {
++  const expiresAt = Date.now() + TOKEN_TTL_MS;
++  const payload = Buffer.from(JSON.stringify({ exp: expiresAt })).toString("base64url");
++  return { token: `${payload}.${sign(payload)}`, expiresAt };
++}
++
++export function verifyToken(token) {
++  if (!token || !passwordConfigured()) return false;
++  const [payload, signature] = String(token).split(".");
++  if (!payload || !signature) return false;
++
++  const expected = Buffer.from(sign(payload));
++  const given = Buffer.from(signature);
++  if (expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) return false;
++
++  try {
++    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")).exp > Date.now();
++  } catch {
++    return false;
++  }
++}
++
++export const bearerToken = (req) => String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
++
++export const clientIp = (req) =>
++  String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown")
++    .split(",")[0]
++    .trim();
+diff --git a/server/blogStore.js b/server/blogStore.js
+new file mode 100644
+index 0000000..26c76fe
+--- /dev/null
++++ b/server/blogStore.js
+@@ -0,0 +1,63 @@
++// Blog storage on Upstash Redis via its REST API (no extra dependency).
++// Vercel's Upstash integration provides either UPSTASH_REDIS_REST_* or the
++// older KV_REST_API_* variables, so both are supported.
++
++const POSTS_KEY = "blog:posts";
++const LIMIT_WINDOW_SECONDS = 600;
++
++const redisUrl = () => process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
++const redisToken = () => process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
++
++export const storageConfigured = () => Boolean(redisUrl() && redisToken());
++
++async function run(commands) {
++  const response = await fetch(`${redisUrl().replace(/\/$/, "")}/pipeline`, {
++    method: "POST",
++    headers: { Authorization: `Bearer ${redisToken()}`, "Content-Type": "application/json" },
++    body: JSON.stringify(commands)
++  });
++  if (!response.ok) throw new Error(`Redis responded with ${response.status}`);
++
++  const results = await response.json();
++  const failed = results.find((entry) => entry.error);
++  if (failed) throw new Error(failed.error);
++  return results.map((entry) => entry.result);
++}
++
++export async function listPosts() {
++  const [raw] = await run([["HGETALL", POSTS_KEY]]);
++  const pairs = Array.isArray(raw) ? raw : Object.entries(raw || {}).flat();
++  const posts = [];
++  for (let i = 1; i < pairs.length; i += 2) {
++    try {
++      posts.push(JSON.parse(pairs[i]));
++    } catch {
++      // skip a corrupted entry instead of failing the whole list
++    }
++  }
++  return posts.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
++}
++
++export async function getPost(id) {
++  const [raw] = await run([["HGET", POSTS_KEY, id]]);
++  return raw ? JSON.parse(raw) : null;
++}
++
++export const savePost = (post) => run([["HSET", POSTS_KEY, post.id, JSON.stringify(post)]]);
++
++export const deletePost = (id) => run([["HDEL", POSTS_KEY, id]]);
++
++// ----- failed-login limiter (per IP) -----
++const limitKey = (ip) => `blog:login-fails:${ip}`;
++
++export async function failedAttempts(ip) {
++  const [count] = await run([["GET", limitKey(ip)]]);
++  return Number(count) || 0;
++}
++
++export async function recordFailure(ip) {
++  const [count] = await run([["INCR", limitKey(ip)]]);
++  if (count === 1) await run([["EXPIRE", limitKey(ip), LIMIT_WINDOW_SECONDS]]);
++}
++
++export const clearFailures = (ip) => run([["DEL", limitKey(ip)]]);
+diff --git a/src/App.jsx b/src/App.jsx
+index 2351c51..9361008 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -1,6 +1,9 @@
+ import { useEffect, useState } from "react";
+ import { Link, Router, usePath } from "./router";
+ import AmbientBackground from "./components/AmbientBackground";
++import { BlogAuthProvider } from "./components/BlogAuth";
++import BlogPage from "./pages/BlogPage";
++import BlogPostPage from "./pages/BlogPostPage";
+ import ContactPage from "./pages/ContactPage";
+ import HomePage from "./pages/HomePage";
+ import NotFoundPage from "./pages/NotFoundPage";
+@@ -10,12 +13,14 @@ import { profile } from "./profile";
+ const routes = {
+   "/": { title: "Md Owais Farhan Akhter | Astrilo", Page: HomePage },
+   "/work": { title: "Work | Astrilo", Page: WorkPage },
++  "/blog": { title: "Blog | Astrilo", Page: BlogPage },
+   "/contact": { title: "Contact | Astrilo", Page: ContactPage }
+ };
+ 
+ const navLinks = [
+   ["/", "home"],
+   ["/work", "work"],
++  ["/blog", "blog"],
+   ["/contact", "contact"]
+ ];
+ 
+@@ -56,7 +61,7 @@ function useReveal(path) {
+ function TopBar() {
+   const path = usePath();
+   const now = useClock();
+-  const dir = path === "/" ? "~" : `~${path}`;
++  const dir = path === "/" ? "~" : `~${path.startsWith("/blog/") ? "/blog/post" : path}`;
+ 
+   return (
+     <header className="topbar">
+@@ -72,11 +77,14 @@ function TopBar() {
+         </Link>
+ 
+         <nav className="topnav" aria-label="Pages">
+-          {navLinks.map(([to, label]) => (
+-            <Link key={to} to={to} className={path === to ? "active" : ""} aria-current={path === to ? "page" : undefined}>
+-              {label}
+-            </Link>
+-          ))}
++          {navLinks.map(([to, label]) => {
++            const active = to === "/" ? path === "/" : path === to || path.startsWith(`${to}/`);
++            return (
++              <Link key={to} to={to} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
++                {label}
++              </Link>
++            );
++          })}
+         </nav>
+ 
+         <p className="topbar-status">
+@@ -115,11 +123,12 @@ function Footer() {
+ function Shell() {
+   const path = usePath();
+   const route = routes[path];
+-  const Page = route ? route.Page : NotFoundPage;
++  const postMatch = path.match(/^\/blog\/([a-z0-9-]+)$/);
+ 
+   useEffect(() => {
++    if (postMatch) return; // the post page sets its own title
+     document.title = route ? route.title : "404 | Astrilo";
+-  }, [route]);
++  }, [route, postMatch]);
+ 
+   useReveal(path);
+ 
+@@ -128,7 +137,7 @@ function Shell() {
+       <AmbientBackground />
+       <TopBar />
+       <main key={path} className="page">
+-        <Page />
++        {postMatch ? <BlogPostPage id={postMatch[1]} /> : route ? <route.Page /> : <NotFoundPage />}
+       </main>
+       <Footer />
+     </div>
+@@ -138,7 +147,9 @@ function Shell() {
+ export default function App() {
+   return (
+     <Router>
+-      <Shell />
++      <BlogAuthProvider>
++        <Shell />
++      </BlogAuthProvider>
+     </Router>
+   );
+ }
+diff --git a/src/blogApi.js b/src/blogApi.js
+new file mode 100644
+index 0000000..7231588
+--- /dev/null
++++ b/src/blogApi.js
+@@ -0,0 +1,58 @@
++export const MOODS = [
++  { id: "hamster", label: "hamster", src: "/blog/hamster.webp", tilt: "-3deg" },
++  { id: "glasses", label: "glasses", src: "/blog/glasses.webp", tilt: "2.5deg" },
++  { id: "writer", label: "writer", src: "/blog/writer.webp", tilt: "-2deg" },
++  { id: "drool", label: "drool", src: "/blog/drool.webp", tilt: "3deg" }
++];
++
++export const getMood = (id) => MOODS.find((mood) => mood.id === id) || MOODS[0];
++
++export class ApiError extends Error {
++  constructor(message, status) {
++    super(message);
++    this.status = status;
++  }
++}
++
++async function request(path, { method = "GET", token, body } = {}) {
++  const headers = {};
++  if (body) headers["Content-Type"] = "application/json";
++  if (token) headers.Authorization = `Bearer ${token}`;
++
++  const response = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
++
++  let data = null;
++  try {
++    data = await response.json();
++  } catch {
++    // non-JSON error body
++  }
++  if (!response.ok) throw new ApiError(data?.error || `Request failed (${response.status})`, response.status);
++  return data;
++}
++
++export const fetchPosts = () => request("/api/blog").then((data) => data.posts);
++export const fetchPost = (id) => request(`/api/blog?id=${encodeURIComponent(id)}`).then((data) => data.post);
++export const login = (password) => request("/api/blog-login", { method: "POST", body: { password } });
++export const createPost = (token, input) => request("/api/blog", { method: "POST", token, body: input }).then((d) => d.post);
++export const updatePost = (token, id, input) =>
++  request(`/api/blog?id=${encodeURIComponent(id)}`, { method: "PUT", token, body: input }).then((d) => d.post);
++export const removePost = (token, id) => request(`/api/blog?id=${encodeURIComponent(id)}`, { method: "DELETE", token });
++
++export const formatDate = (iso) =>
++  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
++
++export const readingMinutes = (text) => Math.max(1, Math.round(text.trim().split(/\s+/).length / 200));
++
++export const excerpt = (markdown, length = 150) => {
++  const plain = markdown
++    .replace(/```[\s\S]*?```/g, " ")
++    .replace(/^#{1,3}\s+/gm, "")
++    .replace(/^>\s?/gm, "")
++    .replace(/^[-*]\s+/gm, "")
++    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
++    .replace(/[*`]/g, "")
++    .replace(/\s+/g, " ")
++    .trim();
++  return plain.length > length ? `${plain.slice(0, length).trimEnd()}...` : plain;
++};
+diff --git a/src/components/BlogAuth.jsx b/src/components/BlogAuth.jsx
+new file mode 100644
+index 0000000..4c864ab
+--- /dev/null
++++ b/src/components/BlogAuth.jsx
+@@ -0,0 +1,155 @@
++import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
++import { login } from "../blogApi";
++
++// The password is only ever typed into the modal and sent to /api/blog-login.
++// It is never stored. We keep the short-lived signed token it returns, in
++// sessionStorage (cleared when the tab closes, and the server expires it anyway).
++
++const SESSION_KEY = "blog:session";
++const AuthContext = createContext(null);
++
++export const useBlogAuth = () => useContext(AuthContext);
++
++function readSession() {
++  try {
++    const session = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
++    if (session && session.expiresAt > Date.now()) return session;
++  } catch {
++    // ignore corrupted storage
++  }
++  return null;
++}
++
++function PasswordModal({ onClose, onUnlocked }) {
++  const [password, setPassword] = useState("");
++  const [error, setError] = useState("");
++  const [busy, setBusy] = useState(false);
++  const inputRef = useRef(null);
++
++  useEffect(() => {
++    inputRef.current?.focus();
++    const onKey = (event) => event.key === "Escape" && onClose();
++    window.addEventListener("keydown", onKey);
++    const previous = document.body.style.overflow;
++    document.body.style.overflow = "hidden";
++    return () => {
++      window.removeEventListener("keydown", onKey);
++      document.body.style.overflow = previous;
++    };
++  }, [onClose]);
++
++  const submit = async (event) => {
++    event.preventDefault();
++    if (!password || busy) return;
++    setBusy(true);
++    setError("");
++    try {
++      onUnlocked(await login(password));
++    } catch (err) {
++      setError(err.message);
++      setPassword("");
++      setBusy(false);
++      inputRef.current?.focus();
++    }
++  };
++
++  return (
++    <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
++      <div className="win modal" role="dialog" aria-modal="true" aria-labelledby="unlock-title">
++        <div className="win-bar">
++          <span className="win-dots" aria-hidden="true">
++            <i />
++            <i />
++            <i />
++          </span>
++          <span className="win-title">auth.sh</span>
++        </div>
++        <form className="win-body modal-body" onSubmit={submit}>
++          <img className="sticker modal-sticker" style={{ "--tilt": "-4deg" }} src="/blog/glasses.webp" alt="" width="120" />
++          <h2 id="unlock-title">who goes there?</h2>
++          <p className="dim">Enter the password to write or edit posts.</p>
++
++          <label className="field">
++            <span>password</span>
++            <input
++              ref={inputRef}
++              type="password"
++              value={password}
++              onChange={(event) => setPassword(event.target.value)}
++              autoComplete="current-password"
++              required
++            />
++          </label>
++
++          {error && (
++            <p className="form-error" role="alert">
++              {error}
++            </p>
++          )}
++
++          <div className="modal-actions">
++            <button type="button" className="btn" onClick={onClose}>
++              cancel
++            </button>
++            <button type="submit" className="btn btn-primary" disabled={busy}>
++              {busy ? "checking..." : "unlock"}
++            </button>
++          </div>
++        </form>
++      </div>
++    </div>
++  );
++}
++
++export function BlogAuthProvider({ children }) {
++  const [session, setSession] = useState(readSession);
++  const [modalOpen, setModalOpen] = useState(false);
++  const resolver = useRef(null);
++
++  const lock = useCallback(() => {
++    sessionStorage.removeItem(SESSION_KEY);
++    setSession(null);
++  }, []);
++
++  // Auto-lock when the token expires.
++  useEffect(() => {
++    if (!session) return undefined;
++    const id = setTimeout(lock, Math.max(0, session.expiresAt - Date.now()));
++    return () => clearTimeout(id);
++  }, [session, lock]);
++
++  const finish = useCallback((ok) => {
++    setModalOpen(false);
++    resolver.current?.(ok);
++    resolver.current = null;
++  }, []);
++
++  const requestUnlock = useCallback(() => {
++    if (session && session.expiresAt > Date.now()) return Promise.resolve(true);
++    return new Promise((resolve) => {
++      resolver.current = resolve;
++      setModalOpen(true);
++    });
++  }, [session]);
++
++  const onUnlocked = useCallback(
++    (next) => {
++      sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
++      setSession(next);
++      finish(true);
++    },
++    [finish]
++  );
++
++  const value = useMemo(
++    () => ({ unlocked: Boolean(session), token: session?.token || null, requestUnlock, lock }),
++    [session, requestUnlock, lock]
++  );
++
++  return (
++    <AuthContext.Provider value={value}>
++      {children}
++      {modalOpen && <PasswordModal onClose={() => finish(false)} onUnlocked={onUnlocked} />}
++    </AuthContext.Provider>
++  );
++}
+diff --git a/src/components/BlogEditor.jsx b/src/components/BlogEditor.jsx
+new file mode 100644
+index 0000000..2dd3aa8
+--- /dev/null
++++ b/src/components/BlogEditor.jsx
+@@ -0,0 +1,154 @@
++import { useEffect, useState } from "react";
++import { MOODS } from "../blogApi";
++import { useBlogAuth } from "./BlogAuth";
++import Markdown from "./Markdown";
++
++const BODY_MAX = 20000;
++const TITLE_MAX = 120;
++
++export default function BlogEditor({ initial, submitLabel = "publish", onSubmit, onCancel, draftKey }) {
++  const { lock } = useBlogAuth();
++  const [title, setTitle] = useState(initial.title);
++  const [body, setBody] = useState(initial.body);
++  const [mood, setMood] = useState(initial.mood);
++  const [tab, setTab] = useState("write");
++  const [error, setError] = useState("");
++  const [busy, setBusy] = useState(false);
++
++  // Restore an unfinished draft (new posts only), once.
++  useEffect(() => {
++    if (!draftKey || initial.title || initial.body) return;
++    try {
++      const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
++      if (draft) {
++        setTitle(draft.title || "");
++        setBody(draft.body || "");
++        setMood(draft.mood || "hamster");
++      }
++    } catch {
++      // ignore corrupted draft
++    }
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, []);
++
++  // Autosave the draft locally while typing.
++  useEffect(() => {
++    if (!draftKey || (!title && !body)) return undefined;
++    const id = setTimeout(() => {
++      try {
++        localStorage.setItem(draftKey, JSON.stringify({ title, body, mood }));
++      } catch {
++        // storage full or blocked: not critical
++      }
++    }, 500);
++    return () => clearTimeout(id);
++  }, [title, body, mood, draftKey]);
++
++  const submit = async (event) => {
++    event.preventDefault();
++    if (busy) return;
++    setError("");
++    setBusy(true);
++    try {
++      await onSubmit({ title: title.trim(), body, mood });
++      if (draftKey) localStorage.removeItem(draftKey);
++    } catch (err) {
++      if (err.status === 401) lock();
++      setError(err.status === 401 ? "Session expired. Close this and unlock again (your draft is saved)." : err.message);
++      setBusy(false);
++    }
++  };
++
++  return (
++    <form className="win editor" onSubmit={submit}>
++      <div className="win-bar">
++        <span className="win-dots" aria-hidden="true">
++          <i />
++          <i />
++          <i />
++        </span>
++        <span className="win-title">{initial.title ? "edit-post.md" : "new-post.md"}</span>
++        <div className="editor-tabs" role="tablist">
++          {["write", "preview"].map((name) => (
++            <button
++              key={name}
++              type="button"
++              role="tab"
++              aria-selected={tab === name}
++              className={tab === name ? "on" : ""}
++              onClick={() => setTab(name)}
++            >
++              {name}
++            </button>
++          ))}
++        </div>
++      </div>
++
++      <div className="win-body editor-body">
++        <input
++          className="editor-title"
++          value={title}
++          onChange={(event) => setTitle(event.target.value)}
++          maxLength={TITLE_MAX}
++          placeholder="Post title"
++          aria-label="Post title"
++          required
++        />
++
++        <fieldset className="mood-picker">
++          <legend>cover sticker</legend>
++          {MOODS.map((item) => (
++            <button
++              key={item.id}
++              type="button"
++              role="radio"
++              aria-checked={mood === item.id}
++              aria-label={item.label}
++              className={mood === item.id ? "on" : ""}
++              onClick={() => setMood(item.id)}
++            >
++              <img src={item.src} alt="" width="52" height="52" loading="lazy" />
++            </button>
++          ))}
++        </fieldset>
++
++        {tab === "write" ? (
++          <textarea
++            className="editor-text"
++            value={body}
++            onChange={(event) => setBody(event.target.value)}
++            maxLength={BODY_MAX}
++            rows={14}
++            placeholder={"Write anything...\n\n# Heading   **bold**   `code`   - list   > quote   [link](https://...)"}
++            aria-label="Post body"
++            required
++          />
++        ) : (
++          <div className="editor-preview">
++            {body.trim() ? <Markdown source={body} /> : <p className="dim">Nothing to preview yet.</p>}
++          </div>
++        )}
++
++        {error && (
++          <p className="form-error" role="alert">
++            {error}
++          </p>
++        )}
++
++        <div className="editor-foot">
++          <span className="dim">
++            {body.length}/{BODY_MAX}
++          </span>
++          <div className="editor-actions">
++            <button type="button" className="btn" onClick={onCancel}>
++              cancel
++            </button>
++            <button type="submit" className="btn btn-primary" disabled={busy || !title.trim() || !body.trim()}>
++              {busy ? "saving..." : submitLabel}
++            </button>
++          </div>
++        </div>
++      </div>
++    </form>
++  );
++}
+diff --git a/src/components/Markdown.jsx b/src/components/Markdown.jsx
+new file mode 100644
+index 0000000..0317abc
+--- /dev/null
++++ b/src/components/Markdown.jsx
+@@ -0,0 +1,100 @@
++// A small, safe markdown renderer. It builds React elements (never raw HTML),
++// and only allows http(s) links, so post content cannot inject scripts.
++
++const INLINE = /(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\))/g;
++
++function renderInline(text, keyPrefix) {
++  const nodes = [];
++  let last = 0;
++  let index = 0;
++  let match;
++  INLINE.lastIndex = 0;
++
++  while ((match = INLINE.exec(text))) {
++    if (match.index > last) nodes.push(text.slice(last, match.index));
++    const key = `${keyPrefix}-${index}`;
++    index += 1;
++
++    if (match[1]) nodes.push(<code key={key}>{match[1].slice(1, -1)}</code>);
++    else if (match[2]) nodes.push(<strong key={key}>{match[2].slice(2, -2)}</strong>);
++    else
++      nodes.push(
++        <a key={key} href={match[5]} target="_blank" rel="noopener noreferrer">
++          {match[4]}
++        </a>
++      );
++    last = INLINE.lastIndex;
++  }
++  if (last < text.length) nodes.push(text.slice(last));
++  return nodes;
++}
++
++function withBreaks(lines, keyPrefix) {
++  return lines.flatMap((line, i) => (i === 0 ? renderInline(line, `${keyPrefix}-${i}`) : [<br key={`${keyPrefix}-br${i}`} />, ...renderInline(line, `${keyPrefix}-${i}`)]));
++}
++
++export default function Markdown({ source }) {
++  const lines = source.replace(/\r\n/g, "\n").split("\n");
++  const blocks = [];
++  let i = 0;
++
++  while (i < lines.length) {
++    const line = lines[i];
++    const key = `b${blocks.length}`;
++
++    if (/^```/.test(line)) {
++      const code = [];
++      i += 1;
++      while (i < lines.length && !/^```/.test(lines[i])) {
++        code.push(lines[i]);
++        i += 1;
++      }
++      i += 1;
++      blocks.push(
++        <pre key={key}>
++          <code>{code.join("\n")}</code>
++        </pre>
++      );
++    } else if (/^#{1,3}\s+/.test(line)) {
++      const level = line.match(/^#+/)[0].length;
++      const Tag = `h${level + 1}`; // post title is the h1
++      blocks.push(<Tag key={key}>{renderInline(line.replace(/^#+\s+/, ""), key)}</Tag>);
++      i += 1;
++    } else if (/^>\s?/.test(line)) {
++      const quote = [];
++      while (i < lines.length && /^>\s?/.test(lines[i])) {
++        quote.push(lines[i].replace(/^>\s?/, ""));
++        i += 1;
++      }
++      blocks.push(<blockquote key={key}>{withBreaks(quote, key)}</blockquote>);
++    } else if (/^[-*]\s+/.test(line)) {
++      const items = [];
++      while (i < lines.length && /^[-*]\s+/.test(lines[i])) {
++        items.push(lines[i].replace(/^[-*]\s+/, ""));
++        i += 1;
++      }
++      blocks.push(
++        <ul key={key}>
++          {items.map((item, n) => (
++            <li key={n}>{renderInline(item, `${key}-${n}`)}</li>
++          ))}
++        </ul>
++      );
++    } else if (line.trim() === "") {
++      i += 1;
++    } else {
++      const para = [];
++      while (
++        i < lines.length &&
++        lines[i].trim() !== "" &&
++        !/^(```|#{1,3}\s|>\s?|[-*]\s)/.test(lines[i])
++      ) {
++        para.push(lines[i]);
++        i += 1;
++      }
++      blocks.push(<p key={key}>{withBreaks(para, key)}</p>);
++    }
++  }
++
++  return <div className="prose">{blocks}</div>;
++}
+diff --git a/src/pages/BlogPage.jsx b/src/pages/BlogPage.jsx
+new file mode 100644
+index 0000000..4219a77
+--- /dev/null
++++ b/src/pages/BlogPage.jsx
+@@ -0,0 +1,123 @@
++import { useEffect, useRef, useState } from "react";
++import { Plus } from "lucide-react";
++import BlogEditor from "../components/BlogEditor";
++import { useBlogAuth } from "../components/BlogAuth";
++import { createPost, excerpt, fetchPosts, formatDate, getMood, readingMinutes } from "../blogApi";
++import { Link, useNavigate } from "../router";
++
++function Mascots() {
++  return (
++    <div className="mascots" aria-hidden="true">
++      <img className="sticker m-drool" style={{ "--tilt": "-6deg" }} src="/blog/drool.webp" alt="" />
++      <img className="sticker m-hamster" style={{ "--tilt": "3deg" }} src="/blog/hamster.webp" alt="" />
++      <img className="sticker m-glasses" style={{ "--tilt": "-3deg" }} src="/blog/glasses.webp" alt="" />
++    </div>
++  );
++}
++
++export default function BlogPage() {
++  const { token, requestUnlock } = useBlogAuth();
++  const navigate = useNavigate();
++  const [posts, setPosts] = useState(null);
++  const [error, setError] = useState("");
++  const [writing, setWriting] = useState(false);
++  const editorRef = useRef(null);
++
++  useEffect(() => {
++    let cancelled = false;
++    fetchPosts()
++      .then((list) => !cancelled && setPosts(list))
++      .catch((err) => !cancelled && setError(err.message));
++    return () => {
++      cancelled = true;
++    };
++  }, []);
++
++  const startWriting = async () => {
++    if (await requestUnlock()) {
++      setWriting(true);
++      requestAnimationFrame(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
++    }
++  };
++
++  const publish = async (values) => {
++    const post = await createPost(token, values);
++    navigate(`/blog/${post.id}`);
++  };
++
++  return (
++    <>
++      <section className="container page-head">
++        <div className="blog-head">
++          <div>
++            <p className="sec-cmd">
++              <span className="p">$</span> ls ~/blog
++            </p>
++            <h1>Blog</h1>
++            <p className="page-lede">Notes from the terminal: what I am building, learning and breaking.</p>
++            <div className="hero-actions">
++              <button type="button" className="btn btn-primary" onClick={startWriting}>
++                <Plus size={15} /> create blog
++              </button>
++            </div>
++          </div>
++          <Mascots />
++        </div>
++      </section>
++
++      <section className="container section tight">
++        {writing && (
++          <div ref={editorRef} className="editor-wrap">
++            <BlogEditor
++              initial={{ title: "", body: "", mood: "hamster" }}
++              draftKey="blog:draft"
++              onSubmit={publish}
++              onCancel={() => setWriting(false)}
++            />
++          </div>
++        )}
++
++        {error && (
++          <div className="blog-empty">
++            <img className="sticker" style={{ "--tilt": "-3deg" }} src="/blog/hamster.webp" alt="" width="150" />
++            <p>{error}</p>
++          </div>
++        )}
++
++        {!error && posts === null && <p className="dim blog-loading">fetching posts...</p>}
++
++        {!error && posts && posts.length === 0 && (
++          <div className="blog-empty">
++            <img className="sticker" style={{ "--tilt": "3deg" }} src="/blog/drool.webp" alt="" width="190" />
++            <p>nothing here yet. the hamster is still thinking.</p>
++          </div>
++        )}
++
++        {posts && posts.length > 0 && (
++          <div className="post-grid">
++            {posts.map((post) => (
++              <Link key={post.id} to={`/blog/${post.id}`} className="card post-card">
++                <img
++                  className="sticker post-thumb"
++                  style={{ "--tilt": getMood(post.mood).tilt }}
++                  src={getMood(post.mood).src}
++                  alt=""
++                  width="84"
++                  height="84"
++                  loading="lazy"
++                />
++                <div>
++                  <h3>{post.title}</h3>
++                  <p className="post-meta">
++                    {formatDate(post.createdAt)} <span className="sep">/</span> {readingMinutes(post.body)} min read
++                  </p>
++                  <p className="post-excerpt">{excerpt(post.body)}</p>
++                </div>
++              </Link>
++            ))}
++          </div>
++        )}
++      </section>
++    </>
++  );
++}
+diff --git a/src/pages/BlogPostPage.jsx b/src/pages/BlogPostPage.jsx
+new file mode 100644
+index 0000000..6e218a3
+--- /dev/null
++++ b/src/pages/BlogPostPage.jsx
+@@ -0,0 +1,157 @@
++import { useEffect, useState } from "react";
++import { ArrowLeft, Lock, Pencil, Trash2 } from "lucide-react";
++import BlogEditor from "../components/BlogEditor";
++import { useBlogAuth } from "../components/BlogAuth";
++import Markdown from "../components/Markdown";
++import { fetchPost, formatDate, getMood, readingMinutes, removePost, updatePost } from "../blogApi";
++import { Link, useNavigate } from "../router";
++
++export default function BlogPostPage({ id }) {
++  const { unlocked, token, requestUnlock, lock } = useBlogAuth();
++  const navigate = useNavigate();
++  const [post, setPost] = useState(null);
++  const [error, setError] = useState(null);
++  const [editing, setEditing] = useState(false);
++  const [confirming, setConfirming] = useState(false);
++  const [actionError, setActionError] = useState("");
++
++  useEffect(() => {
++    let cancelled = false;
++    setPost(null);
++    setError(null);
++    setEditing(false);
++    fetchPost(id)
++      .then((data) => {
++        if (cancelled) return;
++        setPost(data);
++        document.title = `${data.title} | Astrilo`;
++      })
++      .catch((err) => !cancelled && setError(err));
++    return () => {
++      cancelled = true;
++    };
++  }, [id]);
++
++  const startEditing = async () => {
++    if (await requestUnlock()) setEditing(true);
++  };
++
++  const save = async (values) => {
++    setPost(await updatePost(token, id, values));
++    setEditing(false);
++  };
++
++  const destroy = async () => {
++    setActionError("");
++    try {
++      await removePost(token, id);
++      navigate("/blog");
++    } catch (err) {
++      if (err.status === 401) lock();
++      setActionError(err.status === 401 ? "Session expired. Unlock again to delete." : err.message);
++      setConfirming(false);
++    }
++  };
++
++  if (error) {
++    const missing = error.status === 404;
++    return (
++      <section className="container page-head notfound">
++        <p className="sec-cmd">
++          <span className="p">$</span> cat {id}
++        </p>
++        <h1>{missing ? "post not found" : "could not load post"}</h1>
++        <p className="page-lede">{missing ? "That post does not exist, or it was deleted." : error.message}</p>
++        <div className="hero-actions">
++          <Link to="/blog" className="btn btn-primary">
++            back to blog
++          </Link>
++        </div>
++      </section>
++    );
++  }
++
++  if (!post) {
++    return (
++      <section className="container page-head">
++        <p className="dim blog-loading">fetching post...</p>
++      </section>
++    );
++  }
++
++  const mood = getMood(post.mood);
++
++  return (
++    <article className="container post-page">
++      <Link to="/blog" className="back-link">
++        <ArrowLeft size={14} /> all posts
++      </Link>
++
++      {editing ? (
++        <BlogEditor
++          initial={{ title: post.title, body: post.body, mood: post.mood }}
++          submitLabel="save changes"
++          onSubmit={save}
++          onCancel={() => setEditing(false)}
++        />
++      ) : (
++        <>
++          <header className="post-head">
++            <div>
++              <p className="post-meta">
++                {formatDate(post.createdAt)} <span className="sep">/</span> {readingMinutes(post.body)} min read
++                {post.updatedAt !== post.createdAt && (
++                  <>
++                    {" "}
++                    <span className="sep">/</span> edited {formatDate(post.updatedAt)}
++                  </>
++                )}
++              </p>
++              <h1>{post.title}</h1>
++            </div>
++            <img
++              className="sticker post-cover"
++              style={{ "--tilt": mood.tilt }}
++              src={mood.src}
++              alt=""
++              width="150"
++              height="150"
++            />
++          </header>
++
++          <Markdown source={post.body} />
++
++          <footer className="post-foot">
++            {confirming ? (
++              <span className="confirm">
++                delete this post for good?
++                <button type="button" className="btn btn-danger" onClick={destroy}>
++                  yes, delete
++                </button>
++                <button type="button" className="btn" onClick={() => setConfirming(false)}>
++                  keep it
++                </button>
++              </span>
++            ) : (
++              <span className="post-actions">
++                <button type="button" className="btn" onClick={startEditing}>
++                  {unlocked ? <Pencil size={14} /> : <Lock size={14} />} edit
++                </button>
++                {unlocked && (
++                  <button type="button" className="btn btn-danger" onClick={() => setConfirming(true)}>
++                    <Trash2 size={14} /> delete
++                  </button>
++                )}
++              </span>
++            )}
++            {actionError && (
++              <p className="form-error" role="alert">
++                {actionError}
++              </p>
++            )}
++          </footer>
++        </>
++      )}
++    </article>
++  );
++}
+diff --git a/src/pages/HomePage.jsx b/src/pages/HomePage.jsx
+index ad9fc85..b83ce35 100644
+--- a/src/pages/HomePage.jsx
++++ b/src/pages/HomePage.jsx
+@@ -205,6 +205,10 @@ export default function HomePage() {
+             <span>Activity and projects</span>
+             <ArrowRight size={18} />
+           </Link>
++          <Link to="/blog" className="next-link">
++            <span>Read the blog</span>
++            <ArrowRight size={18} />
++          </Link>
+           <Link to="/contact" className="next-link">
+             <span>Get in touch</span>
+             <ArrowRight size={18} />
+diff --git a/src/router.jsx b/src/router.jsx
+index 0c9448e..1d31331 100644
+--- a/src/router.jsx
++++ b/src/router.jsx
+@@ -85,3 +85,4 @@ export function Link({ to, onClick, children, ...rest }) {
+ }
+ 
+ export const usePath = () => useContext(RouterContext).path;
++export const useNavigate = () => useContext(RouterContext).navigate;
+diff --git a/src/styles.css b/src/styles.css
+index dad2cfd..63904ef 100644
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -1258,3 +1258,529 @@ main {
+     transform: none;
+   }
+ }
++
++/* =========================================================
++   Blog
++   ========================================================= */
++
++/* ---------- Stickers (the memes) ---------- */
++.sticker {
++  display: block;
++  max-width: 100%;
++  height: auto;
++  border: 1px solid var(--line-strong);
++  border-radius: 14px;
++  background: #fff;
++  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
++  transform: rotate(var(--tilt, -3deg));
++  transition: transform 0.35s var(--ease), box-shadow 0.35s;
++}
++
++.sticker:hover {
++  transform: rotate(0deg) scale(1.04);
++  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(74, 222, 128, 0.35);
++}
++
++.blog-head {
++  display: grid;
++  grid-template-columns: minmax(0, 1fr) auto;
++  gap: 2rem;
++  align-items: center;
++}
++
++.mascots {
++  position: relative;
++  width: min(360px, 38vw);
++  aspect-ratio: 1.25;
++}
++
++.mascots .sticker {
++  position: absolute;
++}
++
++.m-hamster {
++  top: 0;
++  right: 0;
++  width: 58%;
++}
++
++.m-drool {
++  top: 30%;
++  left: 0;
++  width: 46%;
++  z-index: 1;
++}
++
++.m-glasses {
++  bottom: -4%;
++  right: 10%;
++  width: 36%;
++  z-index: 2;
++}
++
++/* ---------- Post list ---------- */
++.post-grid {
++  display: grid;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++  gap: 1rem;
++}
++
++.post-card {
++  display: flex;
++  align-items: flex-start;
++  gap: 1.1rem;
++  text-decoration: none;
++  animation: pageIn 0.45s var(--ease) both;
++}
++
++.post-thumb {
++  flex: 0 0 84px;
++  width: 84px;
++  height: 84px;
++  object-fit: cover;
++}
++
++.post-card h3 {
++  color: var(--white);
++  font-size: 1.02rem;
++  line-height: 1.35;
++}
++
++.post-card:hover h3 {
++  color: var(--green);
++}
++
++.post-meta {
++  margin-top: 0.15rem;
++  color: var(--faint);
++  font-size: 0.72rem;
++}
++
++.post-excerpt {
++  margin-top: 0.55rem;
++  color: var(--dim);
++  font-size: 0.84rem;
++}
++
++.blog-empty {
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  gap: 1.4rem;
++  padding: 2.5rem 1rem;
++  color: var(--dim);
++  text-align: center;
++}
++
++.blog-loading {
++  padding: 1rem 0;
++  font-size: 0.85rem;
++}
++
++/* ---------- Post page ---------- */
++.post-page {
++  max-width: 780px;
++  padding: clamp(2rem, 5vw, 3.5rem) 0 1rem;
++  animation: none;
++}
++
++.back-link {
++  display: inline-flex;
++  align-items: center;
++  gap: 0.45rem;
++  margin-bottom: 1.6rem;
++  color: var(--dim);
++  font-size: 0.78rem;
++  text-decoration: none;
++}
++
++.back-link:hover {
++  color: var(--green);
++}
++
++.post-head {
++  display: flex;
++  align-items: flex-start;
++  justify-content: space-between;
++  gap: 1.5rem;
++  margin-bottom: 2rem;
++}
++
++.post-head h1 {
++  margin-top: 0.4rem;
++  color: var(--white);
++  font-size: clamp(1.8rem, 4.5vw, 2.8rem);
++  font-weight: 700;
++  letter-spacing: -0.03em;
++  line-height: 1.15;
++  overflow-wrap: anywhere;
++}
++
++.post-cover {
++  flex: 0 0 auto;
++  width: clamp(96px, 18vw, 150px);
++  height: auto;
++}
++
++.post-foot {
++  margin-top: 3rem;
++  padding-top: 1.4rem;
++  border-top: 1px solid var(--line);
++}
++
++.post-actions,
++.confirm {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  gap: 0.7rem;
++  color: var(--dim);
++  font-size: 0.82rem;
++}
++
++.btn-danger:hover {
++  color: var(--red);
++  border-color: var(--red);
++  background: rgba(255, 123, 114, 0.1);
++}
++
++/* ---------- Rendered markdown ---------- */
++.prose {
++  font-size: 1rem;
++  line-height: 1.85;
++  overflow-wrap: anywhere;
++}
++
++.prose > * + * {
++  margin-top: 1.1rem;
++}
++
++.prose h2,
++.prose h3,
++.prose h4 {
++  margin-top: 2rem;
++  color: var(--white);
++  line-height: 1.3;
++}
++
++.prose h2 {
++  font-size: 1.45rem;
++}
++
++.prose h3 {
++  font-size: 1.2rem;
++}
++
++.prose h4 {
++  font-size: 1.05rem;
++}
++
++.prose a {
++  color: var(--green);
++}
++
++.prose strong {
++  color: var(--white);
++}
++
++.prose code {
++  padding: 0.1rem 0.4rem;
++  border-radius: 5px;
++  background: var(--surface-2);
++  border: 1px solid var(--line);
++  color: var(--amber);
++  font-size: 0.88em;
++}
++
++.prose pre {
++  margin-bottom: 0;
++  padding: 1rem 1.2rem;
++  overflow-x: auto;
++  border: 1px solid var(--line);
++  border-radius: 8px;
++  background: var(--surface);
++  line-height: 1.6;
++}
++
++.prose pre code {
++  padding: 0;
++  border: 0;
++  background: none;
++  color: var(--text);
++  font-size: 0.85rem;
++}
++
++.prose blockquote {
++  padding: 0.2rem 0 0.2rem 1.1rem;
++  border-left: 3px solid var(--green);
++  color: var(--dim);
++}
++
++.prose ul {
++  padding-left: 1.3rem;
++  list-style: none;
++}
++
++.prose li {
++  position: relative;
++  margin-top: 0.35rem;
++}
++
++.prose li::before {
++  content: ">";
++  position: absolute;
++  left: -1.3rem;
++  color: var(--green);
++}
++
++/* ---------- Password modal ---------- */
++.modal-backdrop {
++  position: fixed;
++  inset: 0;
++  z-index: 100;
++  display: grid;
++  place-items: center;
++  padding: 1.2rem;
++  background: rgba(5, 6, 8, 0.72);
++  -webkit-backdrop-filter: blur(6px);
++  backdrop-filter: blur(6px);
++  animation: fadeIn 0.2s ease both;
++}
++
++@keyframes fadeIn {
++  from {
++    opacity: 0;
++  }
++}
++
++.modal {
++  width: min(400px, 100%);
++  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
++  animation: pageIn 0.3s var(--ease) both;
++}
++
++.modal-body {
++  display: grid;
++  gap: 0.9rem;
++  justify-items: start;
++}
++
++.modal-body h2 {
++  color: var(--white);
++  font-size: 1.3rem;
++}
++
++.modal-body .field,
++.modal-actions {
++  width: 100%;
++}
++
++.modal-sticker {
++  width: 96px;
++  margin-bottom: 0.3rem;
++}
++
++.modal-actions {
++  display: flex;
++  justify-content: flex-end;
++  gap: 0.6rem;
++}
++
++.btn:disabled {
++  opacity: 0.55;
++  cursor: not-allowed;
++}
++
++.form-error {
++  color: var(--red);
++  font-size: 0.8rem;
++}
++
++/* ---------- Editor ---------- */
++.editor-wrap {
++  margin-bottom: 2rem;
++}
++
++.editor {
++  animation: pageIn 0.4s var(--ease) both;
++}
++
++.editor-tabs {
++  display: flex;
++  gap: 0.25rem;
++  margin-left: auto;
++}
++
++.editor-tabs button {
++  padding: 0.2rem 0.65rem;
++  border: 1px solid transparent;
++  border-radius: 5px;
++  background: none;
++  color: var(--dim);
++  font: inherit;
++  font-size: 0.72rem;
++  cursor: pointer;
++}
++
++.editor-tabs button.on {
++  border-color: var(--line-strong);
++  background: var(--bg);
++  color: var(--green);
++}
++
++.editor-body {
++  display: grid;
++  gap: 1rem;
++}
++
++.editor-title,
++.editor-text {
++  width: 100%;
++  border: 1px solid var(--line-strong);
++  border-radius: 7px;
++  background: var(--bg);
++  color: var(--white);
++  font: inherit;
++  transition: border-color 0.2s, box-shadow 0.2s;
++}
++
++.editor-title {
++  padding: 0.8rem 1rem;
++  font-size: 1.3rem;
++  font-weight: 700;
++}
++
++.editor-text {
++  padding: 0.9rem 1rem;
++  font-size: 0.9rem;
++  line-height: 1.7;
++  resize: vertical;
++}
++
++.editor-title:focus,
++.editor-text:focus {
++  outline: none;
++  border-color: var(--green);
++  box-shadow: 0 0 0 3px var(--green-dim);
++}
++
++.editor-title::placeholder,
++.editor-text::placeholder {
++  color: var(--faint);
++}
++
++.editor-preview {
++  min-height: 18rem;
++  padding: 1rem 1.2rem;
++  border: 1px dashed var(--line-strong);
++  border-radius: 7px;
++}
++
++.mood-picker {
++  display: flex;
++  align-items: center;
++  flex-wrap: wrap;
++  gap: 0.6rem;
++  margin: 0;
++  padding: 0;
++  border: 0;
++}
++
++.mood-picker legend {
++  float: left;
++  margin-right: 0.8rem;
++  padding: 0;
++  color: var(--dim);
++  font-size: 0.72rem;
++  line-height: 52px;
++}
++
++.mood-picker button {
++  padding: 3px;
++  border: 2px solid var(--line-strong);
++  border-radius: 12px;
++  background: var(--surface-2);
++  cursor: pointer;
++  opacity: 0.6;
++  transition: opacity 0.2s, border-color 0.2s, transform 0.2s;
++}
++
++.mood-picker button img {
++  display: block;
++  width: 52px;
++  height: 52px;
++  border-radius: 8px;
++  object-fit: cover;
++}
++
++.mood-picker button:hover {
++  opacity: 1;
++  transform: translateY(-2px);
++}
++
++.mood-picker button.on {
++  border-color: var(--green);
++  opacity: 1;
++}
++
++.editor-foot {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  flex-wrap: wrap;
++  gap: 0.8rem;
++  font-size: 0.74rem;
++}
++
++.editor-actions {
++  display: flex;
++  gap: 0.6rem;
++}
++
++/* ---------- Layout tweaks for the new blog link ---------- */
++.next-links {
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++}
++
++@media (max-width: 960px) {
++  .blog-head {
++    grid-template-columns: 1fr;
++  }
++
++  .mascots {
++    width: min(320px, 80%);
++  }
++
++  .post-grid {
++    grid-template-columns: 1fr;
++  }
++
++  .next-links {
++    grid-template-columns: 1fr;
++  }
++}
++
++@media (max-width: 640px) {
++  .topnav {
++    gap: 0.1rem;
++  }
++
++  .topnav a {
++    padding: 0.35rem 0.45rem;
++    font-size: 0.78rem;
++  }
++
++  .post-head {
++    flex-direction: column-reverse;
++  }
++
++  .post-cover {
++    width: 110px;
++  }
++
++  .mood-picker legend {
++    float: none;
++    width: 100%;
++    line-height: 1.4;
++  }
++}
+diff --git a/vite.config.js b/vite.config.js
+index 1bccdc2..3c9667e 100644
+--- a/vite.config.js
++++ b/vite.config.js
+@@ -1,28 +1,65 @@
+-import { defineConfig } from "vite";
++import fs from "node:fs";
++import path from "node:path";
++import { pathToFileURL } from "node:url";
++import { defineConfig, loadEnv } from "vite";
++
++// Mirrors Vercel's /api/* functions for `npm run dev` and `npm run preview`,
++// so the same handlers in /api work locally. Env vars come from .env.local.
++function localApi(mode) {
++  Object.assign(process.env, loadEnv(mode, process.cwd(), ""));
++
++  const makeMiddleware = (loadModule) => async (req, res, next) => {
++    const url = new URL(req.url, "http://localhost");
++    const match = url.pathname.match(/^\/api\/([a-z0-9-]+)$/i);
++    if (!match) return next();
++
++    const file = path.resolve(process.cwd(), "api", `${match[1]}.js`);
++    if (!fs.existsSync(file)) return next();
++
++    req.query = Object.fromEntries(url.searchParams);
++    if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
++      const chunks = [];
++      for await (const chunk of req) chunks.push(chunk);
++      try {
++        req.body = JSON.parse(Buffer.concat(chunks).toString() || "{}");
++      } catch {
++        req.body = {};
++      }
++    }
++
++    res.status = (code) => {
++      res.statusCode = code;
++      return res;
++    };
++    res.json = (data) => {
++      res.setHeader("Content-Type", "application/json");
++      res.end(JSON.stringify(data));
++    };
++
++    try {
++      const mod = await loadModule(file);
++      await mod.default(req, res);
++    } catch (error) {
++      res.statusCode = 500;
++      res.json({ error: error.message });
++    }
++  };
+ 
+-// Mirrors the Vercel function at /api/leetcode so `npm run dev` works too.
+-function leetcodeDevApi() {
+   return {
+-    name: "leetcode-dev-api",
++    name: "local-api",
+     configureServer(server) {
+-      server.middlewares.use("/api/leetcode", async (_req, res) => {
+-        res.setHeader("Content-Type", "application/json");
+-        try {
+-          const { fetchLeetCode } = await import("./server/leetcode.js");
+-          res.end(JSON.stringify(await fetchLeetCode()));
+-        } catch (error) {
+-          res.statusCode = 502;
+-          res.end(JSON.stringify({ error: error.message }));
+-        }
+-      });
++      server.middlewares.use(makeMiddleware((file) => server.ssrLoadModule(file)));
++    },
++    configurePreviewServer(server) {
++      server.middlewares.use(makeMiddleware((file) => import(pathToFileURL(file).href)));
+     }
+   };
+ }
+ 
+-export default defineConfig({
+-  plugins: [leetcodeDevApi()],
++export default defineConfig(({ mode }) => ({
++  plugins: [localApi(mode)],
+   server: {
+     host: "0.0.0.0",
+     port: 5173
+   }
+-});
++}));

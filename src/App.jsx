@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, Router, usePath } from "./router";
 import AmbientBackground from "./components/AmbientBackground";
+import { BlogAuthProvider } from "./components/BlogAuth";
+import BlogPage from "./pages/BlogPage";
+import BlogPostPage from "./pages/BlogPostPage";
 import ContactPage from "./pages/ContactPage";
 import HomePage from "./pages/HomePage";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -10,12 +13,14 @@ import { profile } from "./profile";
 const routes = {
   "/": { title: "Md Owais Farhan Akhter | Astrilo", Page: HomePage },
   "/work": { title: "Work | Astrilo", Page: WorkPage },
+  "/blog": { title: "Blog | Astrilo", Page: BlogPage },
   "/contact": { title: "Contact | Astrilo", Page: ContactPage }
 };
 
 const navLinks = [
   ["/", "home"],
   ["/work", "work"],
+  ["/blog", "blog"],
   ["/contact", "contact"]
 ];
 
@@ -56,7 +61,7 @@ function useReveal(path) {
 function TopBar() {
   const path = usePath();
   const now = useClock();
-  const dir = path === "/" ? "~" : `~${path}`;
+  const dir = path === "/" ? "~" : `~${path.startsWith("/blog/") ? "/blog/post" : path}`;
 
   return (
     <header className="topbar">
@@ -72,11 +77,14 @@ function TopBar() {
         </Link>
 
         <nav className="topnav" aria-label="Pages">
-          {navLinks.map(([to, label]) => (
-            <Link key={to} to={to} className={path === to ? "active" : ""} aria-current={path === to ? "page" : undefined}>
-              {label}
-            </Link>
-          ))}
+          {navLinks.map(([to, label]) => {
+            const active = to === "/" ? path === "/" : path === to || path.startsWith(`${to}/`);
+            return (
+              <Link key={to} to={to} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
+                {label}
+              </Link>
+            );
+          })}
         </nav>
 
         <p className="topbar-status">
@@ -115,11 +123,12 @@ function Footer() {
 function Shell() {
   const path = usePath();
   const route = routes[path];
-  const Page = route ? route.Page : NotFoundPage;
+  const postMatch = path.match(/^\/blog\/([a-z0-9-]+)$/);
 
   useEffect(() => {
+    if (postMatch) return; // the post page sets its own title
     document.title = route ? route.title : "404 | Astrilo";
-  }, [route]);
+  }, [route, postMatch]);
 
   useReveal(path);
 
@@ -128,7 +137,7 @@ function Shell() {
       <AmbientBackground />
       <TopBar />
       <main key={path} className="page">
-        <Page />
+        {postMatch ? <BlogPostPage id={postMatch[1]} /> : route ? <route.Page /> : <NotFoundPage />}
       </main>
       <Footer />
     </div>
@@ -138,7 +147,9 @@ function Shell() {
 export default function App() {
   return (
     <Router>
-      <Shell />
+      <BlogAuthProvider>
+        <Shell />
+      </BlogAuthProvider>
     </Router>
   );
 }
