@@ -205,6 +205,10 @@ export default function HomePage() {
             <span>Activity and projects</span>
             <ArrowRight size={18} />
           </Link>
+          <Link to="/blog" className="next-link">
+            <span>Read the blog</span>
+            <ArrowRight size={18} />
+          </Link>
           <Link to="/contact" className="next-link">
             <span>Get in touch</span>
             <ArrowRight size={18} />

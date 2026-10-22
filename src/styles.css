@@ -1258,3 +1258,558 @@ main {
     transform: none;
   }
 }
+
+/* =========================================================
+   Blog
+   ========================================================= */
+
+/* ---------- Stickers (the memes) ---------- */
+.sticker {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transform: rotate(var(--tilt, -3deg));
+  transition: transform 0.35s var(--ease), box-shadow 0.35s;
+}
+
+.sticker:hover {
+  transform: rotate(0deg) scale(1.04);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(74, 222, 128, 0.35);
+}
+
+.blog-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2rem;
+  align-items: center;
+}
+
+.mascots {
+  position: relative;
+  width: min(360px, 38vw);
+  aspect-ratio: 1.25;
+}
+
+.mascots .sticker {
+  position: absolute;
+}
+
+.m-hamster {
+  top: 0;
+  right: 0;
+  width: 58%;
+}
+
+.m-drool {
+  top: 30%;
+  left: 0;
+  width: 46%;
+  z-index: 1;
+}
+
+.m-glasses {
+  bottom: -4%;
+  right: 10%;
+  width: 36%;
+  z-index: 2;
+}
+
+/* ---------- Post list ---------- */
+.post-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.post-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.1rem;
+  text-decoration: none;
+  animation: pageIn 0.45s var(--ease) both;
+}
+
+.post-thumb {
+  flex: 0 0 84px;
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+}
+
+.post-card h3 {
+  color: var(--white);
+  font-size: 1.02rem;
+  line-height: 1.35;
+}
+
+.post-card:hover h3 {
+  color: var(--green);
+}
+
+.post-meta {
+  margin-top: 0.15rem;
+  color: var(--faint);
+  font-size: 0.72rem;
+}
+
+.post-excerpt {
+  margin-top: 0.55rem;
+  color: var(--dim);
+  font-size: 0.84rem;
+}
+
+.blog-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+  padding: 2.5rem 1rem;
+  color: var(--dim);
+  text-align: center;
+}
+
+.blog-loading {
+  padding: 1rem 0;
+  font-size: 0.85rem;
+}
+
+/* ---------- Post page ---------- */
+.post-page {
+  max-width: 780px;
+  padding: clamp(2rem, 5vw, 3.5rem) 0 1rem;
+  animation: none;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 1.6rem;
+  color: var(--dim);
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--green);
+}
+
+.post-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.post-head h1 {
+  margin-top: 0.4rem;
+  color: var(--white);
+  font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.post-cover {
+  flex: 0 0 auto;
+  width: clamp(96px, 18vw, 150px);
+  height: auto;
+}
+
+.post-foot {
+  margin-top: 3rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--line);
+}
+
+.post-actions,
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--dim);
+  font-size: 0.82rem;
+}
+
+.btn-danger:hover {
+  color: var(--red);
+  border-color: var(--red);
+  background: rgba(255, 123, 114, 0.1);
+}
+
+/* ---------- Rendered markdown ---------- */
+.prose {
+  font-size: 1rem;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+
+.prose > * + * {
+  margin-top: 1.1rem;
+}
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin-top: 2rem;
+  color: var(--white);
+  line-height: 1.3;
+}
+
+.prose h2 {
+  font-size: 1.45rem;
+}
+
+.prose h3 {
+  font-size: 1.2rem;
+}
+
+.prose h4 {
+  font-size: 1.05rem;
+}
+
+.prose a {
+  color: var(--green);
+}
+
+.prose strong {
+  color: var(--white);
+}
+
+.prose code {
+  padding: 0.1rem 0.4rem;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--amber);
+  font-size: 0.88em;
+}
+
+.prose pre {
+  margin-bottom: 0;
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  line-height: 1.6;
+}
+
+.prose pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.prose blockquote {
+  padding: 0.2rem 0 0.2rem 1.1rem;
+  border-left: 3px solid var(--green);
+  color: var(--dim);
+}
+
+.prose ul {
+  padding-left: 1.3rem;
+  list-style: none;
+}
+
+.prose li {
+  position: relative;
+  margin-top: 0.35rem;
+}
+
+.prose li::before {
+  content: ">";
+  position: absolute;
+  left: -1.3rem;
+  color: var(--green);
+}
+
+/* ---------- Password modal ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+  background: rgba(5, 6, 8, 0.72);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.2s ease both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.modal {
+  width: min(400px, 100%);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  animation: pageIn 0.3s var(--ease) both;
+}
+
+.modal-body {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+}
+
+.modal-body h2 {
+  color: var(--white);
+  font-size: 1.3rem;
+}
+
+.modal-body .field,
+.modal-actions {
+  width: 100%;
+}
+
+.modal-sticker {
+  width: 96px;
+  margin-bottom: 0.3rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.form-error {
+  color: var(--red);
+  font-size: 0.8rem;
+}
+
+/* ---------- Editor ---------- */
+.editor-wrap {
+  margin-bottom: 2rem;
+}
+
+.editor {
+  animation: pageIn 0.4s var(--ease) both;
+}
+
+.editor-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.editor-tabs button {
+  padding: 0.2rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: none;
+  color: var(--dim);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.editor-tabs button.on {
+  border-color: var(--line-strong);
+  background: var(--bg);
+  color: var(--green);
+}
+
+.editor-body {
+  display: grid;
+  gap: 1rem;
+}
+
+.editor-title,
+.editor-text {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--white);
+  font: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.editor-title {
+  padding: 0.8rem 1rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.editor-text {
+  padding: 0.9rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.editor-title:focus,
+.editor-text:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-dim);
+}
+
+.editor-title::placeholder,
+.editor-text::placeholder {
+  color: var(--faint);
+}
+
+.editor-preview {
+  min-height: 18rem;
+  padding: 1rem 1.2rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 7px;
+}
+
+.mood-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mood-picker legend {
+  float: left;
+  margin-right: 0.8rem;
+  padding: 0;
+  color: var(--dim);
+  font-size: 0.72rem;
+  line-height: 52px;
+}
+
+.mood-picker button {
+  padding: 3px;
+  border: 2px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.mood-picker button img {
+  display: block;
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.mood-picker button:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.mood-picker button.on {
+  border-color: var(--green);
+  opacity: 1;
+}
+
+.editor-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  font-size: 0.74rem;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+/* ---------- Layout tweaks for the new blog link ---------- */
+.next-links {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+  .blog-head {
+    grid-template-columns: 1fr;
+  }
+
+  .mascots {
+    width: min(320px, 80%);
+  }
+
+  .post-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .next-links {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .topnav {
+    gap: 0.1rem;
+  }
+
+  .topnav a {
+    padding: 0.35rem 0.45rem;
+    font-size: 0.78rem;
+  }
+
+  .post-head {
+    flex-direction: column-reverse;
+  }
+
+  .post-cover {
+    width: 110px;
+  }
+
+  .mood-picker legend {
+    float: none;
+    width: 100%;
+    line-height: 1.4;
+  }
+}
+
+/* ---------- Images in posts ---------- */
+.prose figure {
+  margin: 1.8rem 0;
+}
+
+.prose figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  font-size: 0.74rem;
+}
+
+.editor-text.dragging {
+  border-color: var(--green);
+  border-style: dashed;
+  background: var(--green-dim);
+}

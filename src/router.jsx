@@ -85,3 +85,4 @@ export function Link({ to, onClick, children, ...rest }) {
 }
 
 export const usePath = () => useContext(RouterContext).path;
+export const useNavigate = () => useContext(RouterContext).navigate;
