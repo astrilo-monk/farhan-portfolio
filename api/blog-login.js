@@ -28,8 +28,9 @@ export default async function handler(req, res) {
 
     await clearFailures(ip);
     return res.status(200).json(issueToken());
-  } catch {
+  } catch (error) {
     // If the limiter store is down we fail closed rather than allow unlimited guesses.
+    console.error("Blog login storage error:", error instanceof Error ? error.message : error);
     return res.status(503).json({ error: "Login is unavailable right now. Try again shortly." });
   }
 }
