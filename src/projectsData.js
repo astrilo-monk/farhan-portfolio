@@ -114,13 +114,13 @@ export const projects = [
 
   // ----- Everything else, newest first -----
   {
-    title: "kunal-tracker",
+    title: "dsaflo",
     year: "2026",
     description:
       "DSA progress tracker covering both Kunal Kushwaha's and Padho with Pratyush's problem lists, with dashboard stats, bookmarks, a revision queue and JSON import/export.",
     tags: ["Next.js", "Tailwind", "Zustand"],
     icon: ListChecks,
-    repo: gh("kunal-tracker"),
+    repo: gh("dsaflo"),
     color: "yellow"
   },
   {
