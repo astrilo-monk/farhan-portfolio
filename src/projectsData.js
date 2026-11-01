@@ -117,7 +117,7 @@ export const projects = [
     title: "dsaflo",
     year: "2026",
     description:
-      "DSA progress tracker covering both Kunal Kushwaha's and Padho with Pratyush's problem lists, with dashboard stats, bookmarks, a revision queue and JSON import/export.",
+      "DSA progress tracker covering both Kunal Kushwaha's, Padho with Pratyush's problem lists and a GATE tracker with dashboard stats, bookmarks, a revision queue and JSON import/export.",
     tags: ["Next.js", "Tailwind", "Zustand"],
     icon: ListChecks,
     repo: gh("dsaflo"),
