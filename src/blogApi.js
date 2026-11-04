@@ -5,7 +5,12 @@ export const MOODS = [
   { id: "drool", label: "drool", src: "/blog/drool.webp", tilt: "3deg" }
 ];
 
-export const getMood = (id) => MOODS.find((mood) => mood.id === id) || MOODS[0];
+export const getMood = (id, covers = []) =>
+  MOODS.find((mood) => mood.id === id) ||
+  covers.find((cover) => cover.id === id) ||
+  (typeof id === "string" && /^cover:[a-f0-9]{16}$/.test(id)
+    ? { id, label: "custom cover", src: `/api/blog-image?id=${id.slice(6)}`, tilt: "0deg" }
+    : MOODS[0]);
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -38,6 +43,9 @@ export const createPost = (token, input) => request("/api/blog", { method: "POST
 export const updatePost = (token, id, input) =>
   request(`/api/blog?id=${encodeURIComponent(id)}`, { method: "PUT", token, body: input }).then((d) => d.post);
 export const uploadImage = (token, input) => request("/api/blog-upload", { method: "POST", token, body: input });
+export const fetchCovers = () => request("/api/blog-covers").then((data) => data.covers);
+export const uploadCover = (token, input) =>
+  request("/api/blog-upload", { method: "POST", token, body: { ...input, cover: true } }).then((data) => data.cover);
 export const removePost = (token, id) => request(`/api/blog?id=${encodeURIComponent(id)}`, { method: "DELETE", token });
 
 export const formatDate = (iso) =>

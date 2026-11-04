@@ -1723,6 +1723,30 @@ main {
   opacity: 1;
 }
 
+.mood-picker .mood-add {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  width: 76px;
+  height: 76px;
+  padding: 0.55rem 0.25rem 0.35rem;
+  color: var(--dim);
+  font: inherit;
+  font-size: 0.6rem;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.mood-picker .mood-add:hover {
+  color: var(--green);
+}
+
+.mood-picker .mood-add svg {
+  flex: 0 0 auto;
+}
+
 .editor-foot {
   display: flex;
   align-items: center;

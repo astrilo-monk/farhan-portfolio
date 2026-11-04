@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus } from "lucide-react";
-import { MOODS, uploadImage } from "../blogApi";
+import { ImagePlus, Plus } from "lucide-react";
+import { fetchCovers, MOODS, uploadCover, uploadImage } from "../blogApi";
 import { altFromFilename, blobToBase64, prepareImage } from "../imageUpload";
 import { useBlogAuth } from "./BlogAuth";
 import Markdown from "./Markdown";
@@ -18,12 +18,21 @@ export default function BlogEditor({ initial, submitLabel = "publish", onSubmit,
   const [busy, setBusy] = useState(false);
   const [uploads, setUploads] = useState(0);
   const [uploadError, setUploadError] = useState("");
+  const [coverError, setCoverError] = useState("");
+  const [covers, setCovers] = useState([]);
   const [dragging, setDragging] = useState(false);
   const textRef = useRef(null);
   const fileRef = useRef(null);
+  const coverFileRef = useRef(null);
   const bodyRef = useRef(body);
   const cursorRef = useRef(null);
   bodyRef.current = body;
+
+  useEffect(() => {
+    fetchCovers()
+      .then(setCovers)
+      .catch((err) => setCoverError(err.message));
+  }, []);
 
   // After inserting an image, put the caret right after it.
   useEffect(() => {
@@ -72,6 +81,32 @@ export default function BlogEditor({ initial, submitLabel = "publish", onSubmit,
       } finally {
         setUploads((n) => n - 1);
       }
+    }
+  };
+
+  const handleCoverFile = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setCoverError("Only image files can be used as covers.");
+      return;
+    }
+    setCoverError("");
+    setUploads((n) => n + 1);
+    try {
+      const { blob, type } = await prepareImage(file);
+      const data = await blobToBase64(blob);
+      const cover = await uploadCover(token, { type, data, label: altFromFilename(file.name) });
+      setCovers((items) => [cover, ...items]);
+      setMood(cover.id);
+    } catch (err) {
+      if (err.status === 401) {
+        lock();
+        setCoverError("Session expired. Close this and unlock again.");
+      } else {
+        setCoverError(err.message);
+      }
+    } finally {
+      setUploads((n) => n - 1);
     }
   };
 
@@ -170,6 +205,33 @@ export default function BlogEditor({ initial, submitLabel = "publish", onSubmit,
               <img src={item.src} alt="" width="52" height="52" loading="lazy" />
             </button>
           ))}
+          {covers.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="radio"
+              aria-checked={mood === item.id}
+              aria-label={item.label}
+              className={mood === item.id ? "on" : ""}
+              onClick={() => setMood(item.id)}
+            >
+              <img src={item.src} alt="" width="52" height="52" loading="lazy" />
+            </button>
+          ))}
+          <button type="button" className="mood-add" onClick={() => coverFileRef.current?.click()}>
+            <Plus size={28} strokeWidth={1.8} />
+            <span>add cover sticker</span>
+          </button>
+          <input
+            ref={coverFileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(event) => {
+              handleCoverFile(event.target.files[0]);
+              event.target.value = "";
+            }}
+          />
         </fieldset>
 
         {tab === "write" ? (
@@ -233,6 +295,12 @@ export default function BlogEditor({ initial, submitLabel = "publish", onSubmit,
         {uploadError && (
           <p className="form-error" role="alert">
             {uploadError}
+          </p>
+        )}
+
+        {coverError && (
+          <p className="form-error" role="alert">
+            {coverError}
           </p>
         )}
 

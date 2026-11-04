@@ -64,6 +64,7 @@ export const clearFailures = (ip) => run([["DEL", limitKey(ip)]]);
 
 // ----- uploaded images (stored as base64 in one hash; served via /api/blog-image) -----
 const IMAGES_KEY = "blog:images";
+const COVERS_KEY = "blog:covers";
 
 export const saveImage = (id, record) => run([["HSET", IMAGES_KEY, id, JSON.stringify(record)]]);
 
@@ -73,3 +74,19 @@ export async function getImage(id) {
 }
 
 export const deleteImages = (ids) => (ids.length ? run([["HDEL", IMAGES_KEY, ...ids]]) : Promise.resolve());
+
+export const saveCover = (id, record) => run([["HSET", COVERS_KEY, id, JSON.stringify(record)]]);
+
+export async function listCovers() {
+  const [raw] = await run([["HGETALL", COVERS_KEY]]);
+  const pairs = Array.isArray(raw) ? raw : Object.entries(raw || {}).flat();
+  const covers = [];
+  for (let i = 1; i < pairs.length; i += 2) {
+    try {
+      covers.push(JSON.parse(pairs[i]));
+    } catch {
+      // skip a corrupted entry instead of failing the whole list
+    }
+  }
+  return covers.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}

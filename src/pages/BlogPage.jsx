@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import BlogEditor from "../components/BlogEditor";
 import { useBlogAuth } from "../components/BlogAuth";
-import { createPost, excerpt, fetchPosts, formatDate, getMood, readingMinutes } from "../blogApi";
+import { createPost, excerpt, fetchCovers, fetchPosts, formatDate, getMood, readingMinutes } from "../blogApi";
 import { Link, useNavigate } from "../router";
 
 function Mascots() {
@@ -21,6 +21,7 @@ export default function BlogPage() {
   const [posts, setPosts] = useState(null);
   const [error, setError] = useState("");
   const [writing, setWriting] = useState(false);
+  const [covers, setCovers] = useState([]);
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -31,6 +32,10 @@ export default function BlogPage() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    fetchCovers().then(setCovers).catch(() => setCovers([]));
   }, []);
 
   const startWriting = async () => {
@@ -99,8 +104,8 @@ export default function BlogPage() {
               <Link key={post.id} to={`/blog/${post.id}`} className="card post-card">
                 <img
                   className="sticker post-thumb"
-                  style={{ "--tilt": getMood(post.mood).tilt }}
-                  src={getMood(post.mood).src}
+                  style={{ "--tilt": getMood(post.mood, covers).tilt }}
+                  src={getMood(post.mood, covers).src}
                   alt=""
                   width="84"
                   height="84"

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { bearerToken, verifyToken } from "../server/blogAuth.js";
-import { saveImage, storageConfigured } from "../server/blogStore.js";
+import { saveCover, saveImage, storageConfigured } from "../server/blogStore.js";
 
 // Vercel functions accept request bodies up to ~4.5 MB, and base64 adds ~33%,
 // so 2 MB of image is the safe ceiling.
@@ -14,7 +14,7 @@ const SIGNATURES = {
   "image/gif": (b) => b.length > 6 && ["GIF87a", "GIF89a"].includes(b.toString("ascii", 0, 6))
 };
 
-// POST /api/blog-upload  { type, data: <base64> }  ->  { id, url }   (token required)
+// POST /api/blog-upload  { type, data: <base64>, cover?, label? }  ->  { id, url, cover? }   (token required)
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -24,6 +24,8 @@ export default async function handler(req, res) {
 
   const type = typeof req.body?.type === "string" ? req.body.type : "";
   const data = typeof req.body?.data === "string" ? req.body.data : "";
+  const isCover = req.body?.cover === true;
+  const label = typeof req.body?.label === "string" ? req.body.label.trim().slice(0, 60) : "custom cover";
 
   if (!SIGNATURES[type]) return res.status(400).json({ error: "Only JPEG, PNG, WebP and GIF images are allowed." });
   if (!data || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return res.status(400).json({ error: "Invalid image data." });
@@ -36,8 +38,17 @@ export default async function handler(req, res) {
 
   try {
     const id = crypto.randomBytes(8).toString("hex");
-    await saveImage(id, { type, data, size: bytes.length, createdAt: new Date().toISOString() });
-    return res.status(201).json({ id, url: `/api/blog-image?id=${id}` });
+    const url = `/api/blog-image?id=${id}`;
+    const record = { type, data, size: bytes.length, createdAt: new Date().toISOString() };
+    await saveImage(id, record);
+    if (isCover) {
+      await saveCover(id, { id: `cover:${id}`, label, src: url, tilt: "0deg", createdAt: record.createdAt });
+    }
+    return res.status(201).json({
+      id,
+      url,
+      ...(isCover ? { cover: { id: `cover:${id}`, label, src: url, tilt: "0deg" } } : {})
+    });
   } catch {
     return res.status(500).json({ error: "Could not save the image." });
   }

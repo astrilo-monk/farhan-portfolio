@@ -3,6 +3,7 @@ import { bearerToken, verifyToken } from "../server/blogAuth.js";
 import { deleteImages, deletePost, getPost, listPosts, savePost, storageConfigured } from "../server/blogStore.js";
 
 const MOODS = ["hamster", "glasses", "writer", "drool"];
+const CUSTOM_COVER = /^cover:[a-f0-9]{16}$/;
 const TITLE_MAX = 120;
 const BODY_MAX = 20000;
 
@@ -33,7 +34,7 @@ const otherPostBodies = async (id) => (await listPosts()).filter((post) => post.
 function readInput(body) {
   const title = typeof body?.title === "string" ? body.title.trim() : "";
   const text = typeof body?.body === "string" ? body.body.replace(/\r\n/g, "\n").trim() : "";
-  const mood = MOODS.includes(body?.mood) ? body.mood : "hamster";
+  const mood = MOODS.includes(body?.mood) || CUSTOM_COVER.test(body?.mood) ? body.mood : "hamster";
 
   if (!title) return { error: "Give the post a title." };
   if (title.length > TITLE_MAX) return { error: `Title is too long (max ${TITLE_MAX} characters).` };

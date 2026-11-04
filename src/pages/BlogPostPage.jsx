@@ -3,7 +3,7 @@ import { ArrowLeft, Lock, Pencil, Trash2 } from "lucide-react";
 import BlogEditor from "../components/BlogEditor";
 import { useBlogAuth } from "../components/BlogAuth";
 import Markdown from "../components/Markdown";
-import { fetchPost, formatDate, getMood, readingMinutes, removePost, updatePost } from "../blogApi";
+import { fetchCovers, fetchPost, formatDate, getMood, readingMinutes, removePost, updatePost } from "../blogApi";
 import { Link, useNavigate } from "../router";
 
 export default function BlogPostPage({ id }) {
@@ -14,6 +14,7 @@ export default function BlogPostPage({ id }) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [covers, setCovers] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,6 +32,10 @@ export default function BlogPostPage({ id }) {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    fetchCovers().then(setCovers).catch(() => setCovers([]));
+  }, []);
 
   const startEditing = async () => {
     if (await requestUnlock()) setEditing(true);
@@ -79,7 +84,7 @@ export default function BlogPostPage({ id }) {
     );
   }
 
-  const mood = getMood(post.mood);
+  const mood = getMood(post.mood, covers);
 
   return (
     <article className="container post-page">
